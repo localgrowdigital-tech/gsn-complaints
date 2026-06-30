@@ -57,6 +57,7 @@ $result = mysqli_query($conn, "SELECT * FROM complaints ORDER BY id DESC");
 <th>Mobile</th>
 <th>Status</th>
 <th>Closing Date</th>
+<th>Remarks</th>
 <th>Action</th>
 
 </tr>
@@ -91,6 +92,10 @@ $result = mysqli_query($conn, "SELECT * FROM complaints ORDER BY id DESC");
 
 <option value="Open" <?php if($row['status']=="Open") echo "selected"; ?>>Open</option>
 
+<option value="In Progress" <?php if($row['status']=="In Progress") echo "selected"; ?>>In Progress</option>
+
+<option value="Resolved" <?php if($row['status']=="Resolved") echo "selected"; ?>>Resolved</option>
+
 <option value="Closed" <?php if($row['status']=="Closed") echo "selected"; ?>>Closed</option>
 
 </select>
@@ -104,6 +109,14 @@ type="date"
 name="closing_date"
 class="form-control"
 value="<?php echo $row['closing_date']; ?>">
+
+</td>
+
+<td>
+
+<a href="remarks.php?id=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm">
+Remarks
+</a>
 
 </td>
 
