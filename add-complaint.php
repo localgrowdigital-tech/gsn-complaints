@@ -64,6 +64,22 @@ if (mysqli_query($conn, $sql)) {
 
     <form method="POST" class="card p-4 shadow">
 
+        <label class="form-label">Job</label>
+
+        <select name="job_id" class="form-control mb-3" required>
+
+        <option value="">Select Job</option>
+
+        <?php while($job = mysqli_fetch_assoc($jobs)) { ?>
+
+        <option value="<?php echo $job['id']; ?>">
+        <?php echo $job['job_name']; ?>
+        </option>
+
+        <?php } ?>
+
+        </select>
+
         <label class="form-label">Complaint Date</label>
         <input type="date" name="complaint_date" required class="form-control mb-3">
 
