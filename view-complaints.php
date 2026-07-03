@@ -155,8 +155,10 @@ $result = mysqli_query($conn, "SELECT * FROM complaints $where ORDER BY id DESC"
                         <th>Mobile</th>
                         <th>Status</th>
                         <th>Closing Date</th>
-                        <th class="no-print">Remarks</th>
-                        <th class="no-print">Action</th>
+                        <th>Details</th>
+                        <th>Remarks</th>
+                        <th>Action</th>
+                        
                     </tr>
                     </thead>
 
@@ -188,6 +190,13 @@ $result = mysqli_query($conn, "SELECT * FROM complaints $where ORDER BY id DESC"
                                     <td>
                                         <input type="date" name="closing_date" class="form-control form-control-sm"
                                                value="<?php echo $row['closing_date']; ?>">
+                                    </td>
+
+                                    <td class="no-print">
+
+                                    <a href="complaint-details.php?id=<?php echo $row['id']; ?>" class="btn btn-info btn-sm mb-1">
+                                            Details
+                                        </a>
                                     </td>
 
                                     <td class="no-print">
