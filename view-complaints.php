@@ -38,6 +38,10 @@ if ($filter != '' && $filter != 'All') {
     $where .= " AND status='$filter'";
 }
 
+if ($job != "") {
+    $where .= " AND complaints.job_id='$job'";
+}
+
 if (isset($_GET['export'])) {
     header("Content-Type: application/vnd.ms-excel");
     header("Content-Disposition: attachment; filename=complaints.xls");
@@ -61,6 +65,7 @@ $result = mysqli_query($conn, "
 SELECT complaints.*, jobs.job_name
 FROM complaints
 LEFT JOIN jobs ON complaints.job_id = jobs.id
+$where
 ORDER BY complaints.id DESC
 ");
 ?>
