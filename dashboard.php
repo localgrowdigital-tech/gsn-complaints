@@ -109,6 +109,14 @@ $progress = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FRO
             <div class="d-grid gap-2 d-md-flex">
                 <a href="add-complaint.php" class="btn btn-primary action-btn">Add Complaint</a>
                 <a href="view-complaints.php" class="btn btn-success action-btn">View Complaints</a>
+                <a href="jobs.php" class="btn btn-warning action-btn">
+                   Jobs
+                </a>
+
+                <a href="logout.php" class="btn btn-danger action-btn">
+                   Logout
+                </a>
+              
             </div>
         </div>
     </div>
