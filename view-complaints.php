@@ -17,14 +17,19 @@ if (isset($_POST['update'])) {
 
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
 $filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
+$job = isset($_GET['job']) ? $_GET['job'] : "";
 
 $where = "WHERE 1";
+if($job != ""){
+    $where .= " AND complaints.job_id='$job'";
+}
 
 if ($search != '') {
     $where .= " AND (
         complaint_id LIKE '%$search%' OR
         tracking_number LIKE '%$search%' OR
         customer_name LIKE '%$search%' OR
+
         mobile LIKE '%$search%'
     )";
 }
@@ -128,22 +133,47 @@ ORDER BY complaints.id DESC
                            value="<?php echo $search; ?>">
                 </div>
 
-                <div class="col-12 col-md-3">
-                    <select name="status" class="form-select">
-                        <option value="All">All Status</option>
-                        <option value="Open" <?php if($filter=="Open") echo "selected"; ?>>Open</option>
-                        <option value="In Progress" <?php if($filter=="In Progress") echo "selected"; ?>>In Progress</option>
-                        <option value="Resolved" <?php if($filter=="Resolved") echo "selected"; ?>>Resolved</option>
-                        <option value="Closed" <?php if($filter=="Closed") echo "selected"; ?>>Closed</option>
-                    </select>
-                </div>
+                <div class="col-12 col-md-5">
+    <input type="text" name="search" class="form-control"
+           placeholder="Search Complaint ID, Tracking, Customer, Mobile"
+           value="<?php echo $search; ?>">
+</div>
 
-                <div class="col-12 col-md-4 d-flex gap-2">
-                    <button class="btn btn-primary" type="submit">Search</button>
-                    <a href="view-complaints.php" class="btn btn-secondary">Reset</a>
-                    <a href="view-complaints.php?search=<?php echo $search; ?>&status=<?php echo $filter; ?>&export=1" class="btn btn-success">Excel</a>
-                    <button type="button" onclick="window.print()" class="btn btn-dark">Print</button>
-                </div>
+<!-- Job Dropdown START -->
+<div class="col-12 col-md-2">
+    <select name="job" class="form-select">
+        <option value="">All Jobs</option>
+
+        <?php
+$jobsList = mysqli_query($conn, "SELECT * FROM jobs ORDER BY job_name ASC");
+while($jobRow = mysqli_fetch_assoc($jobsList)) {
+?>
+    <option value="<?php echo $jobRow['id']; ?>" <?php if($job == $jobRow['id']) echo "selected"; ?>>
+        <?php echo $jobRow['job_name']; ?>
+    </option>
+<?php } ?>
+    </select>
+</div>
+<!-- Job Dropdown END -->
+
+<!-- Status Dropdown START -->
+<div class="col-12 col-md-2">
+    <select name="status" class="form-select">
+        <option value="All">All Status</option>
+        <option value="Open" <?php if($filter=="Open") echo "selected"; ?>>Open</option>
+        <option value="In Progress" <?php if($filter=="In Progress") echo "selected"; ?>>In Progress</option>
+        <option value="Resolved" <?php if($filter=="Resolved") echo "selected"; ?>>Resolved</option>
+        <option value="Closed" <?php if($filter=="Closed") echo "selected"; ?>>Closed</option>
+    </select>
+</div>
+<!-- Status Dropdown END -->
+
+<div class="col-12 col-md-3 d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Search</button>
+    <a href="view-complaints.php" class="btn btn-secondary">Reset</a>
+    <a href="view-complaints.php?search=<?php echo $search; ?>&job=<?php echo $job; ?>&status=<?php echo $filter; ?>&export=1"
+    <button type="button" onclick="window.print()" class="btn btn-dark">Print</button>
+</div>
 
             </form>
 
