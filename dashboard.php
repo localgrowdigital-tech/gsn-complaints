@@ -8,8 +8,15 @@ if (!isset($_SESSION['admin'])) {
 }
 
 $total = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM complaints"))['total'];
+
+$open = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM complaints WHERE status='Open'"))['total'];
+
+$progress = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM complaints WHERE status='In Progress'"))['total'];
+
+$closed = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM complaints WHERE status='Closed'"))['total'];
+
 $jobWise = mysqli_query($conn, "
-SELECT 
+SELECT
     jobs.job_name,
     COUNT(complaints.id) AS total,
     SUM(CASE WHEN complaints.status='Open' THEN 1 ELSE 0 END) AS open_count,
