@@ -161,6 +161,7 @@ ORDER BY complaints.id DESC
                         <th>ID</th>
                         <th>Complaint ID</th>
                         <th>Date</th>
+                        <th>Job</th>
                         <th>Tracking</th>
                         <th>Customer</th>
                         <th>Mobile</th>
@@ -185,6 +186,7 @@ ORDER BY complaints.id DESC
                                     <td><?php echo $row['id']; ?></td>
                                     <td><b><?php echo $row['complaint_id']; ?></b></td>
                                     <td><?php echo $row['complaint_date']; ?></td>
+                                    <td><?php echo $row['job_name']; ?></td>
                                     <td><?php echo $row['tracking_number']; ?></td>
                                     <td><?php echo $row['customer_name']; ?></td>
                                     <td><?php echo $row['mobile']; ?></td>

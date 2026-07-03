@@ -22,17 +22,19 @@ if (isset($_POST['save'])) {
     $status = "Open";
     $job_id = $_POST['job_id'];
 
-    $sql = "INSERT INTO complaints 
-    (complaint_id, job_id, complaint_date, tracking_number, secondary_tracking_number, customer_name, mobile, address, complaint_type, description, status) 
-    VALUES 
-    ('$complaint_id', '$job_id', '$complaint_date', '$tracking_number', '$secondary_tracking_number', '$customer_name', '$mobile', '$address', '$complaint_type', '$description', '$status')
+$sql = "INSERT INTO complaints
+(complaint_id, job_id, complaint_date, tracking_number, secondary_tracking_number, customer_name, mobile, address, complaint_type, description, status)
+VALUES
+('$complaint_id', '$job_id', '$complaint_date', '$tracking_number', '$secondary_tracking_number', '$customer_name', '$mobile', '$address', '$complaint_type', '$description', '$status')";
 
-    if (mysqli_query($conn, $sql)) {
-        $success = "Complaint Added Successfully. Complaint ID: " . $complaint_id;
-    } else {
-        $error = "Error: " . mysqli_error($conn);
-    }
+if (mysqli_query($conn, $sql)) {
+    $success = "Complaint Added Successfully. Complaint ID: " . $complaint_id;
+} else {
+    $error = "Error: " . mysqli_error($conn);
 }
+
+}
+
 ?>
 
 <!DOCTYPE html>
