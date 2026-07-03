@@ -37,16 +37,27 @@ if (isset($_GET['export'])) {
     header("Content-Type: application/vnd.ms-excel");
     header("Content-Disposition: attachment; filename=complaints.xls");
 
-    echo "ID\tComplaint ID\tDate\tTracking\tCustomer\tMobile\tStatus\tClosing Date\n";
+    echo "ID\tComplaint ID\tDate\tJob\tTracking\tCustomer\tMobile\tStatus\tClosing Date\n";
 
-    $export = mysqli_query($conn, "SELECT * FROM complaints $where ORDER BY id DESC");
+    $export = mysqli_query($conn, "
+SELECT complaints.*, jobs.job_name
+FROM complaints
+LEFT JOIN jobs ON complaints.job_id = jobs.id
+$where
+ORDER BY complaints.id DESC
+");
     while ($row = mysqli_fetch_assoc($export)) {
-        echo $row['id']."\t".$row['complaint_id']."\t".$row['complaint_date']."\t".$row['tracking_number']."\t".$row['customer_name']."\t".$row['mobile']."\t".$row['status']."\t".$row['closing_date']."\n";
+        echo $row['id']."\t".$row['complaint_id']."\t".$row['complaint_date']."\t".$row['job_name']."\t".$row['tracking_number']."\t".$row['customer_name']."\t".$row['mobile']."\t".$row['status']."\t".$row['closing_date']."\n";
     }
     exit();
 }
 
-$result = mysqli_query($conn, "SELECT * FROM complaints $where ORDER BY id DESC");
+$result = mysqli_query($conn, "
+SELECT complaints.*, jobs.job_name
+FROM complaints
+LEFT JOIN jobs ON complaints.job_id = jobs.id
+ORDER BY complaints.id DESC
+");
 ?>
 
 <!DOCTYPE html>

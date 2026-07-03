@@ -2,6 +2,8 @@
 session_start();
 include 'db.php';
 
+$jobs = mysqli_query($conn, "SELECT * FROM jobs WHERE status='Active' ORDER BY job_name ASC");
+
 if (!isset($_SESSION['admin'])) {
     header("Location: index.php");
     exit();
@@ -18,11 +20,12 @@ if (isset($_POST['save'])) {
     $complaint_type = $_POST['complaint_type'];
     $description = $_POST['description'];
     $status = "Open";
+    $job_id = $_POST['job_id'];
 
     $sql = "INSERT INTO complaints 
-    (complaint_id, complaint_date, tracking_number, secondary_tracking_number, customer_name, mobile, address, complaint_type, description, status) 
+    (complaint_id, job_id, complaint_date, tracking_number, secondary_tracking_number, customer_name, mobile, address, complaint_type, description, status) 
     VALUES 
-    ('$complaint_id', '$complaint_date', '$tracking_number', '$secondary_tracking_number', '$customer_name', '$mobile', '$address', '$complaint_type', '$description', '$status')";
+    ('$complaint_id', '$job_id', '$complaint_date', '$tracking_number', '$secondary_tracking_number', '$customer_name', '$mobile', '$address', '$complaint_type', '$description', '$status')
 
     if (mysqli_query($conn, $sql)) {
         $success = "Complaint Added Successfully. Complaint ID: " . $complaint_id;
