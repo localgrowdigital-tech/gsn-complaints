@@ -366,7 +366,7 @@ $export_url = 'agent-complaints.php?' . http_build_query($export_query);
                                     <td>
                                         <input type="date" name="closing_date" class="form-control form-control-sm closing-date" value="<?php echo e($row['closing_date']); ?>">
                                     </td>
-                                    <td><a href="complaint-details.php?id=<?php echo (int)$row['id']; ?>" class="btn btn-sm btn-outline-secondary">Details</a></td>
+                                    <td><a href="agent-complaint-details.php?id=<?php echo (int)$row['id']; ?>" class="btn btn-sm btn-outline-secondary">Details</a></td>
                                     <td><a href="agent-remarks.php?id=<?php echo (int)$row['id']; ?>" class="btn btn-sm btn-outline-primary">Remarks</a></td>
                                     <td><button type="submit" name="update_complaint" value="1" class="btn btn-sm btn-success">Update</button></td>
                                 </form>

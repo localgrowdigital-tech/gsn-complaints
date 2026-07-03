@@ -243,7 +243,7 @@ $remarks_result = mysqli_query($conn, "
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="agent-complaints.php" class="btn btn-outline-primary">Back to My Complaints</a>
-            <a href="complaint-details.php?id=<?php echo (int)$complaint_db_id; ?>" class="btn btn-primary">View Details</a>
+            <a href="agent-complaint-details.php?id=<?php echo (int)$complaint_db_id; ?>" class="btn btn-primary">View Details</a>
         </div>
     </div>
 
