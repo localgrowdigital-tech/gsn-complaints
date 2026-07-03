@@ -8,9 +8,19 @@ if (!isset($_SESSION['admin'])) {
 }
 
 $total = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM complaints"))['total'];
-$open = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM complaints WHERE status='Open'"))['total'];
-$closed = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM complaints WHERE status='Closed'"))['total'];
-$progress = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM complaints WHERE status='In Progress'"))['total'];
+$jobWise = mysqli_query($conn, "
+SELECT 
+    jobs.job_name,
+    COUNT(complaints.id) AS total,
+    SUM(CASE WHEN complaints.status='Open' THEN 1 ELSE 0 END) AS open_count,
+    SUM(CASE WHEN complaints.status='In Progress' THEN 1 ELSE 0 END) AS progress_count,
+    SUM(CASE WHEN complaints.status='Closed' THEN 1 ELSE 0 END) AS closed_count
+FROM jobs
+LEFT JOIN complaints ON complaints.job_id = jobs.id
+GROUP BY jobs.id, jobs.job_name
+ORDER BY jobs.job_name ASC
+");
+
 ?>
 
 <!DOCTYPE html>
@@ -120,6 +130,48 @@ $progress = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FRO
             </div>
         </div>
     </div>
+
+<div class="card mt-4 stat-card">
+    <div class="card-body">
+
+        <h5 class="mb-3">Job Wise Complaints</h5>
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-hover">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th>Job</th>
+                        <th>Total</th>
+                        <th>Open</th>
+                        <th>In Progress</th>
+                        <th>Closed</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                <?php while($job = mysqli_fetch_assoc($jobWise)) { ?>
+
+                    <tr>
+                        <td><b><?php echo $job['job_name']; ?></b></td>
+                        <td><?php echo $job['total']; ?></td>
+                        <td><?php echo $job['open_count']; ?></td>
+                        <td><?php echo $job['progress_count']; ?></td>
+                        <td><?php echo $job['closed_count']; ?></td>
+                    </tr>
+
+                <?php } ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+</div>
 
 </div>
 
