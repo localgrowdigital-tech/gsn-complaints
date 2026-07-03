@@ -227,7 +227,7 @@ $resolvedPercent = $totalComplaints > 0 ? round(($resolvedCount / $totalComplain
 
     <section class="row g-3 mb-4">
         <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-primary w-100" href="add-complaint.php?agent=1">Add Complaint</a>
+            <a class="quick-action btn btn-primary w-100" href="agent-add-complaint.php">Add Complaint</a>
         </div>
         <div class="col-6 col-md-4 col-xl">
             <a class="quick-action btn btn-outline-primary w-100" href="agent-complaints.php">My Complaints</a>
