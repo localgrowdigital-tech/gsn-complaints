@@ -225,24 +225,7 @@ $resolvedPercent = $totalComplaints > 0 ? round(($resolvedCount / $totalComplain
         <div class="text-muted small"><?php echo date('d M Y'); ?></div>
     </div>
 
-    <section class="row g-3 mb-4">
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-primary w-100" href="agent-add-complaint.php">Add Complaint</a>
-        </div>
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-primary w-100" href="agent-complaints.php">My Complaints</a>
-        </div>
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-primary w-100" href="agent-import.php">Import CSV</a>
-        </div>
-        <div class="col-6 col-md-4 col-xl">
-            <button class="quick-action btn btn-outline-secondary w-100" type="button" disabled>Profile Coming Soon</button>
-        </div>
-        <div class="col-12 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-danger w-100" href="agent-logout.php">Logout</a>
-        </div>
-    </section>
-
+    
     <section class="row g-3 mb-4">
 
     <div class="col-6 col-lg-4 col-xxl-2">
@@ -253,7 +236,65 @@ $resolvedPercent = $totalComplaints > 0 ? round(($resolvedCount / $totalComplain
                     <div class="display-6 fw-bold"><?php echo $totalComplaints; ?></div>
                 </div>
             </div>
+        </a><section class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl">
+        <a class="quick-action btn btn-primary w-100" href="agent-add-complaint.php">Add Complaint</a>
+    </div>
+
+    <div class="col-6 col-md-4 col-xl">
+        <a class="quick-action btn btn-outline-primary w-100" href="agent-complaints.php">My Complaints</a>
+    </div>
+
+    <div class="col-6 col-md-4 col-xl">
+        <a class="quick-action btn btn-outline-primary w-100" href="agent-import.php">Import CSV</a>
+    </div>
+
+    <div class="col-6 col-md-4 col-xl">
+        <button class="quick-action btn btn-outline-secondary w-100" type="button" disabled>
+            Profile Coming Soon
+        </button>
+    </div>
+
+    <div class="col-12 col-md-4 col-xl">
+        <a class="quick-action btn btn-outline-danger w-100" href="agent-logout.php">
+            Logout
         </a>
+    </div>
+</section>
+
+<!-- SEARCH BOX START -->
+
+<div class="card dashboard-card mb-4">
+    <div class="card-body">
+
+        <form action="agent-complaints.php" method="GET">
+
+            <div class="row g-2">
+
+                <div class="col-md-10">
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-control"
+                        placeholder="Search Complaint ID, Tracking Number, Customer Name, Mobile"
+                    >
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        Search
+                    </button>
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<!-- SEARCH BOX END -->
+
     </div>
 
     <div class="col-6 col-lg-4 col-xxl-2">
