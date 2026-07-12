@@ -145,12 +145,6 @@ ORDER BY complaints.id DESC
                            value="<?php echo $search; ?>">
                 </div>
 
-                <div class="col-12 col-md-5">
-    <input type="text" name="search" class="form-control"
-           placeholder="Search Complaint ID, Tracking, Customer, Mobile"
-           value="<?php echo $search; ?>">
-</div>
-
 <!-- Job Dropdown START -->
 <div class="col-12 col-md-2">
     <select name="job" class="form-select">
