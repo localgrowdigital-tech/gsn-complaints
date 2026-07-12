@@ -10,6 +10,17 @@ if (!isset($_SESSION['agent_id'])) {
 $agent_id = (int)$_SESSION['agent_id'];
 $agent_name = $_SESSION['agent_name'] ?? 'Agent';
 $complaint_db_id = (int)($_GET['id'] ?? 0);
+
+$back_url = 'agent-complaints.php';
+
+if (!empty($_GET['back'])) {
+    $candidate = urldecode($_GET['back']);
+
+    if (strpos($candidate, 'agent-complaints.php') !== false) {
+        $back_url = $candidate;
+    }
+}
+
 $success = '';
 $error = '';
 
@@ -407,15 +418,23 @@ $remarks_result = mysqli_query($conn, "
 </nav>
 
 <main class="container-fluid px-3 px-md-4 py-4">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
-        <div>
-            <h1 class="h3 fw-bold mb-1">Complaint Remarks</h1>
-            <p class="text-muted mb-0">Update status and add follow-up remarks.</p>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="agent-complaints.php" class="btn btn-outline-primary">Back to My Complaints</a>
-            <a href="agent-complaint-details.php?id=<?php echo (int)$complaint_db_id; ?>" class="btn btn-primary">View Details</a>
-        </div>
+    <div class="d-flex flex-wrap gap-2">
+
+    <a
+        href="<?php echo e($back_url); ?>"
+        class="btn btn-outline-primary"
+    >
+        Back to My Complaints
+    </a>
+
+    <a
+        href="agent-complaint-details.php?id=<?php echo (int)$complaint_db_id; ?>"
+        class="btn btn-primary"
+    >
+        View Details
+    </a>
+
+</div>
     </div>
 
     <?php if ($success): ?>
