@@ -8,11 +8,21 @@ if (!isset($_SESSION['admin'])) {
 }
 
 if (isset($_POST['update'])) {
-    $id = $_POST['id'];
-    $status = $_POST['status'];
-    $closing_date = $_POST['closing_date'];
+    $id = (int)$_POST['id'];
+    $status = mysqli_real_escape_string($conn, $_POST['status']);
+    $closing_date = mysqli_real_escape_string($conn, $_POST['closing_date']);
+    $secondary_tracking_number = mysqli_real_escape_string(
+        $conn,
+        $_POST['secondary_tracking_number']
+    );
 
-    mysqli_query($conn, "UPDATE complaints SET status='$status', closing_date='$closing_date' WHERE id='$id'");
+    mysqli_query($conn, "
+        UPDATE complaints SET
+            status='$status',
+            closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . ",
+            secondary_tracking_number='$secondary_tracking_number'
+        WHERE id='$id'
+    ");
 }
 
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
@@ -31,6 +41,7 @@ if ($search != '') {
     $where .= " AND (
         complaint_id LIKE '%$search%' OR
         tracking_number LIKE '%$search%' OR
+        secondary_tracking_number LIKE '%$search%' OR
         customer_name LIKE '%$search%' OR
 
         mobile LIKE '%$search%'
@@ -53,18 +64,30 @@ if (isset($_GET['export'])) {
     header("Content-Type: application/vnd.ms-excel");
     header("Content-Disposition: attachment; filename=complaints.xls");
 
-    echo "ID\tComplaint ID\tDate\tJob\tTracking\tCustomer\tMobile\tStatus\tClosing Date\n";
+    echo "ID\tComplaint ID\tDate\tJob\tTracking\tSecondary Tracking\tCustomer\tMobile\tStatus\tClosing Date\n";
 
     $export = mysqli_query($conn, "
-SELECT complaints.*, jobs.job_name
-FROM complaints
-LEFT JOIN jobs ON complaints.job_id = jobs.id
-$where
-ORDER BY complaints.id DESC
-");
+    SELECT complaints.*, jobs.job_name
+    FROM complaints
+    LEFT JOIN jobs ON complaints.job_id = jobs.id
+    $where
+    ORDER BY complaints.id DESC
+    ");
+
     while ($row = mysqli_fetch_assoc($export)) {
-        echo $row['id']."\t".$row['complaint_id']."\t".$row['complaint_date']."\t".$row['job_name']."\t".$row['tracking_number']."\t".$row['customer_name']."\t".$row['mobile']."\t".$row['status']."\t".$row['closing_date']."\n";
+
+        echo $row['id']."\t".
+             $row['complaint_id']."\t".
+             $row['complaint_date']."\t".
+             $row['job_name']."\t".
+             $row['tracking_number']."\t".
+             $row['secondary_tracking_number']."\t".
+             $row['customer_name']."\t".
+             $row['mobile']."\t".
+             $row['status']."\t".
+             $row['closing_date']."\n";
     }
+
     exit();
 }
 
@@ -236,11 +259,26 @@ while($jobRow = mysqli_fetch_assoc($jobsList)) {
                                             <option value="Closed" <?php if($row['status']=="Closed") echo "selected"; ?>>Closed</option>
                                         </select>
                                     </td>
-
+                                        
                                     <td>
-                                        <input type="date" name="closing_date" class="form-control form-control-sm"
-                                               value="<?php echo $row['closing_date']; ?>">
-                                    </td>
+
+                                       <input
+                                           type="text"
+                                           name="secondary_tracking_number"
+                                           class="form-control form-control-sm"
+                                           placeholder="Secondary Tracking"
+                                           value="<?php echo htmlspecialchars($row['secondary_tracking_number'] ?? ''); ?>"
+                                    >
+                                </td>
+
+                                <td>
+                                   <input
+                                       type="date"
+                                       name="closing_date"
+                                       class="form-control form-control-sm"
+       	                               value="<?php echo $row['closing_date']; ?>"
+                                   >
+                               </td>
 
                                     <td class="no-print">
 
