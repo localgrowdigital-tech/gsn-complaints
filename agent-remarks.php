@@ -86,19 +86,30 @@ $allowed_statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
 $remarks_has_agent_id = table_has_column($conn, 'complaint_remarks', 'agent_id');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     $remark = clean($conn, $_POST['remark'] ?? '');
     $status = clean($conn, $_POST['status'] ?? '');
     $closing_date = clean($conn, $_POST['closing_date'] ?? '');
+
     $secondary_tracking_number = clean(
-    $conn,
-    $_POST['secondary_tracking_number'] ?? ''
-);
+        $conn,
+        $_POST['secondary_tracking_number'] ?? ''
+    );
 
     if ($remark === '') {
+
         $error = 'Remark is required.';
+
     } elseif (!in_array($status, $allowed_statuses, true)) {
+
         $error = 'Invalid status selected.';
+
     } else {
+
+        /*
+         * Check that this complaint belongs to
+         * one of the logged-in agent's assigned jobs.
+         */
         $allowed_check = mysqli_query($conn, "
             SELECT c.id
             FROM complaints c
@@ -109,42 +120,189 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ");
 
         if (!$allowed_check || mysqli_num_rows($allowed_check) === 0) {
+
             $error = 'You are not allowed to add remarks for this complaint.';
+
         } else {
-            if ($remarks_has_agent_id) {
-                $insert_sql = "
-                    INSERT INTO complaint_remarks (complaint_id, agent_id, remark, status, remark_date)
-                    VALUES ($complaint_db_id, $agent_id, '$remark', '$status', NOW())
-                ";
-            } else {
-                $insert_sql = "
-                    INSERT INTO complaint_remarks (complaint_id, remark, status, remark_date)
-                    VALUES ($complaint_db_id, '$remark', '$status', NOW())
-                ";
+
+            /*
+             * Keep existing DRS file when no new file is uploaded.
+             */
+            $drs_path = $complaint['drs_copy'] ?? '';
+            $upload_ok = true;
+
+            /*
+             * Optional DRS upload.
+             */
+            if (
+                isset($_FILES['drs_copy']) &&
+                $_FILES['drs_copy']['error'] !== UPLOAD_ERR_NO_FILE
+            ) {
+
+                if ($_FILES['drs_copy']['error'] !== UPLOAD_ERR_OK) {
+
+                    $error = 'DRS file could not be uploaded.';
+                    $upload_ok = false;
+
+                } elseif ($_FILES['drs_copy']['size'] > 5 * 1024 * 1024) {
+
+                    $error = 'DRS file must be smaller than 5 MB.';
+                    $upload_ok = false;
+
+                } else {
+
+                    $original_name = $_FILES['drs_copy']['name'];
+                    $temporary_name = $_FILES['drs_copy']['tmp_name'];
+
+                    $extension = strtolower(
+                        pathinfo($original_name, PATHINFO_EXTENSION)
+                    );
+
+                    $allowed_extensions = [
+                        'pdf',
+                        'jpg',
+                        'jpeg',
+                        'png'
+                    ];
+
+                    if (!in_array($extension, $allowed_extensions, true)) {
+
+                        $error = 'Only PDF, JPG, JPEG and PNG files are allowed.';
+                        $upload_ok = false;
+
+                    } else {
+
+                        $upload_directory = __DIR__ . '/uploads/drs/';
+
+                        if (!is_dir($upload_directory)) {
+                            mkdir($upload_directory, 0755, true);
+                        }
+
+                        $new_file_name =
+                            'DRS_' .
+                            $complaint_db_id . '_' .
+                            time() . '_' .
+                            bin2hex(random_bytes(3)) . '.' .
+                            $extension;
+
+                        $destination =
+                            $upload_directory . $new_file_name;
+
+                        if (
+                            move_uploaded_file(
+                                $temporary_name,
+                                $destination
+                            )
+                        ) {
+
+                            $drs_path =
+                                'uploads/drs/' . $new_file_name;
+
+                        } else {
+
+                            $error = 'Unable to save the uploaded DRS file.';
+                            $upload_ok = false;
+                        }
+                    }
+                }
             }
 
-            if (mysqli_query($conn, $insert_sql)) {
-                $closing_sql = $closing_date !== ''
-    ? ", closing_date = '$closing_date'"
-    : "";
+            if ($upload_ok) {
 
-$update_sql = "
-    UPDATE complaints SET
-        status = '$status',
-        secondary_tracking_number = '$secondary_tracking_number'
-        $closing_sql
-    WHERE id = $complaint_db_id
-";
+                /*
+                 * Save remark.
+                 */
+                if ($remarks_has_agent_id) {
 
-                if (mysqli_query($conn, $update_sql)) {
-                    $success = 'Remark added successfully.';
-                    $complaint_result = mysqli_query($conn, $complaint_sql);
-                    $complaint = $complaint_result ? mysqli_fetch_assoc($complaint_result) : $complaint;
+                    $insert_sql = "
+                        INSERT INTO complaint_remarks
+                        (
+                            complaint_id,
+                            agent_id,
+                            remark,
+                            status,
+                            remark_date
+                        )
+                        VALUES
+                        (
+                            $complaint_db_id,
+                            $agent_id,
+                            '$remark',
+                            '$status',
+                            NOW()
+                        )
+                    ";
+
                 } else {
-                    $error = 'Remark saved, but complaint status could not be updated.';
+
+                    $insert_sql = "
+                        INSERT INTO complaint_remarks
+                        (
+                            complaint_id,
+                            remark,
+                            status,
+                            remark_date
+                        )
+                        VALUES
+                        (
+                            $complaint_db_id,
+                            '$remark',
+                            '$status',
+                            NOW()
+                        )
+                    ";
                 }
-            } else {
-                $error = 'Unable to save remark. Please try again.';
+
+                if (mysqli_query($conn, $insert_sql)) {
+
+                    $closing_sql = $closing_date !== ''
+                        ? "'$closing_date'"
+                        : "NULL";
+
+                    $safe_drs_path = clean($conn, $drs_path);
+
+                    /*
+                     * Update complaint status, secondary tracking,
+                     * closing date and optional DRS copy.
+                     */
+                    $update_sql = "
+                        UPDATE complaints SET
+                            status = '$status',
+                            secondary_tracking_number =
+                                '$secondary_tracking_number',
+                            closing_date = $closing_sql,
+                            drs_copy = '$safe_drs_path'
+                        WHERE id = $complaint_db_id
+                    ";
+
+                    if (mysqli_query($conn, $update_sql)) {
+
+                        $success =
+                            'Remark and complaint details updated successfully.';
+
+                        /*
+                         * Reload complaint so updated values
+                         * immediately appear on the page.
+                         */
+                        $complaint_result = mysqli_query(
+                            $conn,
+                            $complaint_sql
+                        );
+
+                        $complaint = $complaint_result
+                            ? mysqli_fetch_assoc($complaint_result)
+                            : $complaint;
+
+                    } else {
+
+                        $error =
+                            'Remark saved, but complaint details could not be updated.';
+                    }
+
+                } else {
+
+                    $error = 'Unable to save remark. Please try again.';
+                }
             }
         }
     }
@@ -318,8 +476,33 @@ $remarks_result = mysqli_query($conn, "
             <div class="card page-card">
                 <div class="card-body">
                     <h2 class="h5 fw-bold mb-3">Add Remark</h2>
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         <div class="mb-3">
+    <label for="drs_copy" class="form-label">
+        DRS Copy (Optional)
+    </label>
+
+    <input
+        type="file"
+        name="drs_copy"
+        id="drs_copy"
+        class="form-control"
+        accept=".pdf,.jpg,.jpeg,.png"
+    >
+
+    <?php if (!empty($complaint['drs_copy'])): ?>
+        <small class="text-success d-block mt-2">
+            Current File:
+            <a
+                href="<?php echo e($complaint['drs_copy']); ?>"
+                target="_blank"
+            >
+                View DRS
+            </a>
+        </small>
+    <?php endif; ?>
+</div>
+
                             <label for="remark" class="form-label">Remark</label>
                             <textarea name="remark" id="remark" rows="5" class="form-control" required><?php echo e($_POST['remark'] ?? ''); ?></textarea>
                         </div>
