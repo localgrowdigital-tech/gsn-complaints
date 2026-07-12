@@ -13,12 +13,13 @@ $complaint_db_id = (int)($_GET['id'] ?? 0);
 
 $back_url = 'agent-complaints.php';
 
-if (isset($_GET['back']) && $_GET['back'] !== '') {
-    $candidate = rawurldecode($_GET['back']);
+if (!empty($_GET['back'])) {
+    $candidate = $_GET['back'];
 
-    if (str_starts_with($candidate, '/agent-complaints.php')) {
-        $back_url = $candidate;
-    } elseif (str_starts_with($candidate, 'agent-complaints.php')) {
+    if (
+        str_starts_with($candidate, '/agent-complaints.php') ||
+        str_starts_with($candidate, 'agent-complaints.php')
+    ) {
         $back_url = $candidate;
     }
 }

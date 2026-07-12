@@ -14,6 +14,19 @@ if (!isset($_GET['id'])) {
 
 $id = $_GET['id'];
 
+$back_url = 'view-complaints.php';
+
+if (!empty($_GET['back'])) {
+    $candidate = $_GET['back'];
+
+    if (
+        str_starts_with($candidate, '/view-complaints.php') ||
+        str_starts_with($candidate, 'view-complaints.php')
+    ) {
+        $back_url = $candidate;
+    }
+}
+
 $complaint = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM complaints WHERE id='$id'"));
 
 if (!$complaint) {
@@ -81,7 +94,10 @@ if (isset($_POST['save_remark'])) {
         WHERE id='$id'
     ");
 
-    header("Location: remarks.php?id=$id");
+    header(
+    "Location: remarks.php?id=$id&back=" .
+    urlencode($back_url)
+);
     exit();
 }
 
@@ -102,8 +118,12 @@ $remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_
     <h2 class="text-center text-primary">GRAND SPEED NETWORK</h2>
     <h4 class="text-center mb-4">Complaint Remarks</h4>
 
-    <a href="view-complaints.php" class="btn btn-secondary mb-3">Back</a>
-
+    <a
+    href="<?php echo htmlspecialchars($back_url, ENT_QUOTES, 'UTF-8'); ?>"
+    class="btn btn-secondary"
+>
+    Back
+</a>
     <div class="card shadow mb-4">
         <div class="card-header bg-dark text-white">
             Complaint Details

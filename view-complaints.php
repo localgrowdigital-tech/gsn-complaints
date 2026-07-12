@@ -304,9 +304,12 @@ while($jobRow = mysqli_fetch_assoc($jobsList)) {
                                     </td>
 
                                     <td class="no-print">
-                                        <a href="remarks.php?id=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm">
-                                            Remarks
-                                        </a>
+                                       <a
+                                           href="remarks.php?id=<?php echo (int)$row['id']; ?>&back=<?php echo rawurlencode($_SERVER['REQUEST_URI']); ?>"
+                                           class="btn btn-primary btn-sm"
+                                       >
+                                           Remarks
+                                       </a>
                                     </td>
 
                                     <td class="no-print">
