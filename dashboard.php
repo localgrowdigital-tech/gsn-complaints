@@ -407,39 +407,9 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
         </div>
     </section>
 
-    <section class="row g-4 mb-4">
-        <div class="col-xl-6">
-            <div class="card dashboard-card">
-                <div class="card-header bg-white fw-bold">Recent Complaints</div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead><tr><th>Complaint ID</th><th>Job</th><th>Vendor</th><th>Customer</th><th>Priority</th><th>Status</th><th>Date</th><th>View</th></tr></thead>
-                            <tbody>
-                            <?php if ($recent_complaints && mysqli_num_rows($recent_complaints) > 0): ?>
-                                <?php while ($row = mysqli_fetch_assoc($recent_complaints)): ?>
-                                    <tr>
-                                        <td class="fw-semibold"><?php echo e($row['complaint_id'] ?: $row['id']); ?></td>
-                                        <td><?php echo e($row['job_name']); ?></td>
-                                        <td><?php echo e($row['vendor_name'] ?: 'No Vendor'); ?></td>
-                                        <td><?php echo e($row['customer_name']); ?></td>
-                                        <td><span class="badge <?php echo priority_badge_class($row['priority']); ?>"><?php echo e($row['priority']); ?></span></td>
-                                        <td><span class="badge <?php echo status_badge_class($row['status']); ?>"><?php echo e($row['status']); ?></span></td>
-                                        <td><?php echo e($row['complaint_date']); ?></td>
-                                        <td><a class="btn btn-sm btn-outline-primary" href="complaint-details.php?id=<?php echo (int)$row['id']; ?>">View</a></td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <tr><td colspan="8" class="text-center text-muted py-4">No recent complaints found.</td></tr>
-                            <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+<section class="row g-4 mb-4">
 
-        <div class="col-xl-6">
+        <div class="col-xl-12">
             <div class="card dashboard-card">
                 <div class="card-header bg-white fw-bold">Agent Wise Summary</div>
                 <div class="card-body">
