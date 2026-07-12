@@ -38,8 +38,12 @@ if ($filter != '' && $filter != 'All') {
     $where .= " AND complaints.status='$filter'";
 }
 
-if ($job != "") {
-    $where .= " AND complaints.job_id='$job'";
+if ($priority != "") {
+    $where .= " AND complaints.priority='$priority'";
+}
+
+if ($today == "1") {
+    $where .= " AND DATE(complaints.complaint_date)=CURDATE()";
 }
 
 if (isset($_GET['export'])) {
