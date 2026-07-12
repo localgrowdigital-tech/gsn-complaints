@@ -435,9 +435,16 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
 
 <section class="row g-4 mb-4">
 
-        <div class="col-xl-12">
-            <div class="card dashboard-card">
-                <div class="card-header bg-white fw-bold">Agent Wise Summary</div>
+<div class="col-xl-12">
+
+    <div class="card dashboard-card">
+
+        <div class="card-header bg-white fw-bold">
+            <a href="agents.php" class="text-decoration-none text-dark d-block">
+                Agent Wise Summary
+            </a>
+        </div>
+
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -467,8 +474,12 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
 
     <section class="row g-4">
         <div class="col-xl-6">
-            <div class="card dashboard-card">
-                <div class="card-header bg-white fw-bold">Job Wise Summary</div>
+        <div class="card dashboard-card">
+        <div class="card-header bg-white fw-bold">
+        <a href="jobs.php" class="text-decoration-none text-dark">
+            Job Wise Summary
+        </a>
+        </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -497,8 +508,12 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
         </div>
 
         <div class="col-xl-6">
-            <div class="card dashboard-card">
-                <div class="card-header bg-white fw-bold">Vendor Wise Summary</div>
+        <div class="card dashboard-card">
+        <div class="card-header bg-white fw-bold">
+        <a href="vendors.php" class="text-decoration-none text-dark">
+            Vendor Wise Summary
+        </a>
+        </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
