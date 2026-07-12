@@ -35,7 +35,7 @@ if ($search != '') {
 }
 
 if ($filter != '' && $filter != 'All') {
-    $where .= " AND status='$filter'";
+    $where .= " AND complaints.status='$filter'";
 }
 
 if ($job != "") {
