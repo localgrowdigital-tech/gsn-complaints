@@ -24,16 +24,23 @@ if (isset($_POST['save_remark'])) {
     $remark = $_POST['remark'];
     $status = $_POST['status'];
     $closing_date = $_POST['closing_date'];
+    $secondary_tracking_number = mysqli_real_escape_string(
+    $conn,
+    $_POST['secondary_tracking_number'] ?? ''
+);
 
     mysqli_query($conn, "INSERT INTO complaint_remarks 
     (complaint_id, remark, status) 
     VALUES 
     ('$id', '$remark', '$status')");
 
-    mysqli_query($conn, "UPDATE complaints SET 
+    mysqli_query($conn, "
+    UPDATE complaints SET
     status='$status',
-    closing_date='$closing_date'
-    WHERE id='$id'");
+    closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . ",
+    secondary_tracking_number='$secondary_tracking_number'
+    WHERE id='$complaint_id'
+");
 
     header("Location: remarks.php?id=$id");
     exit();
@@ -94,7 +101,15 @@ $remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_
                     <option value="Resolved" <?php if($complaint['status']=="Resolved") echo "selected"; ?>>Resolved</option>
                     <option value="Closed" <?php if($complaint['status']=="Closed") echo "selected"; ?>>Closed</option>
                 </select>
-
+                <label class="form-label">Secondary Tracking Number</label>
+<input
+    type="text"
+    name="secondary_tracking_number"
+    class="form-control mb-3"
+    placeholder="Enter new docket / redispatch tracking number"
+    value="<?php echo htmlspecialchars($complaint['secondary_tracking_number'] ?? ''); ?>"
+>
+                
                 <label class="form-label">Closing Date</label>
                 <input type="date" name="closing_date" class="form-control mb-3" value="<?php echo $complaint['closing_date']; ?>">
 
