@@ -199,12 +199,28 @@ while($jobRow = mysqli_fetch_assoc($jobsList)) {
 
 <div class="col-12 col-md-3 d-flex gap-2">
     <button class="btn btn-primary" type="submit">Search</button>
-    <a href="view-complaints.php" class="btn btn-secondary">Reset</a>
-    <a href="view-complaints.php?search=<?php echo $search; ?>&job=<?php echo $job; ?>&status=<?php echo $filter; ?>&export=1"
-    <button type="button" onclick="window.print()" class="btn btn-dark">Print</button>
+
+    <a href="view-complaints.php" class="btn btn-secondary">
+        Reset
+    </a>
+
+    <a
+        href="view-complaints.php?search=<?php echo urlencode($search); ?>&job=<?php echo urlencode($job); ?>&status=<?php echo urlencode($filter); ?>&export=1"
+        class="btn btn-success"
+    >
+        Excel
+    </a>
+
+    <button
+        type="button"
+        class="btn btn-dark"
+        onclick="window.print();"
+    >
+        Print
+    </button>
 </div>
 
-            </form>
+</form>
 
         </div>
     </div>
