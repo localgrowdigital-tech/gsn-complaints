@@ -89,6 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $remark = clean($conn, $_POST['remark'] ?? '');
     $status = clean($conn, $_POST['status'] ?? '');
     $closing_date = clean($conn, $_POST['closing_date'] ?? '');
+    $secondary_tracking_number = clean(
+    $conn,
+    $_POST['secondary_tracking_number'] ?? ''
+);
 
     if ($remark === '') {
         $error = 'Remark is required.';
@@ -120,8 +124,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (mysqli_query($conn, $insert_sql)) {
-                $closing_sql = $closing_date !== '' ? ", closing_date = '$closing_date'" : "";
-                $update_sql = "UPDATE complaints SET status = '$status' $closing_sql WHERE id = $complaint_db_id";
+                $closing_sql = $closing_date !== ''
+    ? ", closing_date = '$closing_date'"
+    : "";
+
+$update_sql = "
+    UPDATE complaints SET
+        status = '$status',
+        secondary_tracking_number = '$secondary_tracking_number'
+        $closing_sql
+    WHERE id = $complaint_db_id
+";
 
                 if (mysqli_query($conn, $update_sql)) {
                     $success = 'Remark added successfully.';
@@ -311,20 +324,63 @@ $remarks_result = mysqli_query($conn, "
                             <textarea name="remark" id="remark" rows="5" class="form-control" required><?php echo e($_POST['remark'] ?? ''); ?></textarea>
                         </div>
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="status" class="form-label">Status</label>
-                                <select name="status" id="status" class="form-select" required>
-                                    <?php foreach ($allowed_statuses as $status): ?>
-                                        <?php $selected = (($_POST['status'] ?? $complaint['status']) === $status) ? 'selected' : ''; ?>
-                                        <option value="<?php echo e($status); ?>" <?php echo $selected; ?>><?php echo e($status); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="closing_date" class="form-label">Closing Date</label>
-                                <input type="date" name="closing_date" id="closing_date" class="form-control" value="<?php echo e($_POST['closing_date'] ?? ($complaint['closing_date'] ?? '')); ?>">
-                            </div>
-                        </div>
+
+    <div class="col-md-4">
+        <label for="status" class="form-label">Status</label>
+
+        <select name="status" id="status" class="form-select" required>
+            <?php foreach ($allowed_statuses as $status): ?>
+
+                <?php
+                $selected = (
+                    ($_POST['status'] ?? $complaint['status']) === $status
+                ) ? 'selected' : '';
+                ?>
+
+                <option value="<?php echo e($status); ?>" <?php echo $selected; ?>>
+                    <?php echo e($status); ?>
+                </option>
+
+            <?php endforeach; ?>
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label for="secondary_tracking_number" class="form-label">
+            Secondary Tracking Number
+        </label>
+
+        <input
+            type="text"
+            name="secondary_tracking_number"
+            id="secondary_tracking_number"
+            class="form-control"
+            placeholder="New docket / redispatch number"
+            value="<?php echo e(
+                $_POST['secondary_tracking_number']
+                ?? ($complaint['secondary_tracking_number'] ?? '')
+            ); ?>"
+        >
+    </div>
+
+    <div class="col-md-4">
+        <label for="closing_date" class="form-label">
+            Closing Date
+        </label>
+
+        <input
+            type="date"
+            name="closing_date"
+            id="closing_date"
+            class="form-control"
+            value="<?php echo e(
+                $_POST['closing_date']
+                ?? ($complaint['closing_date'] ?? '')
+            ); ?>"
+        >
+    </div>
+
+</div>
                         <button type="submit" class="btn btn-primary mt-4">Submit Remark</button>
                     </form>
                 </div>
