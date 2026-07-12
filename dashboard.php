@@ -240,6 +240,32 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
         </div>
         <div class="text-muted small"><?php echo date('d M Y'); ?></div>
     </div>
+
+<section class="mb-4">
+    <div class="card dashboard-card">
+        <div class="card-body">
+            <form action="view-complaints.php" method="GET" class="row g-2">
+
+                <div class="col-md-10">
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-control form-control-lg"
+                        placeholder="Search Complaint ID, Tracking Number, Customer Name, Mobile"
+                    >
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        🔍 Search
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</section>
+
 <section class="row g-3 mb-4">
 
     <div class="col-6 col-lg-4 col-xxl-2">
