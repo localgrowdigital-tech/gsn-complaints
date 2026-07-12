@@ -21,26 +21,30 @@ if (!$complaint) {
 }
 
 if (isset($_POST['save_remark'])) {
-    $remark = $_POST['remark'];
-    $status = $_POST['status'];
-    $closing_date = $_POST['closing_date'];
-    $secondary_tracking_number = mysqli_real_escape_string(
-    $conn,
-    $_POST['secondary_tracking_number'] ?? ''
-);
 
-    mysqli_query($conn, "INSERT INTO complaint_remarks 
-    (complaint_id, remark, status) 
-    VALUES 
-    ('$id', '$remark', '$status')");
+    $remark = mysqli_real_escape_string($conn, $_POST['remark']);
+    $status = mysqli_real_escape_string($conn, $_POST['status']);
+    $closing_date = mysqli_real_escape_string($conn, $_POST['closing_date']);
+
+    $secondary_tracking_number = mysqli_real_escape_string(
+        $conn,
+        $_POST['secondary_tracking_number'] ?? ''
+    );
 
     mysqli_query($conn, "
-    UPDATE complaints SET
-    status='$status',
-    closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . ",
-    secondary_tracking_number='$secondary_tracking_number'
-    WHERE id='$complaint_id'
-");
+        INSERT INTO complaint_remarks
+        (complaint_id, remark, status)
+        VALUES
+        ('$id', '$remark', '$status')
+    ");
+
+    mysqli_query($conn, "
+        UPDATE complaints SET
+            status='$status',
+            secondary_tracking_number='$secondary_tracking_number',
+            closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . "
+        WHERE id='$id'
+    ");
 
     header("Location: remarks.php?id=$id");
     exit();
