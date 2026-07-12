@@ -174,6 +174,16 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
             min-height: 116px;
             border-left: 5px solid #0d6efd;
         }
+
+        .clickable-card {
+            cursor: pointer;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .clickable-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 16px 35px rgba(15, 23, 42, .16);
+        }
         .metric-label {
             color: #64748b;
             font-size: .82rem;
@@ -230,44 +240,130 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
         </div>
         <div class="text-muted small"><?php echo date('d M Y'); ?></div>
     </div>
+<section class="row g-3 mb-4">
 
-    <section class="row g-3 mb-4">
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-primary w-100" href="add-complaint.php">Add Complaint</a>
-        </div>
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-primary w-100" href="view-complaints.php">View Complaints</a>
-        </div>
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-primary w-100" href="jobs.php">Jobs</a>
-        </div>
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-primary w-100" href="vendors.php">Vendors</a>
-        </div>
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-primary w-100" href="agents.php">Agents</a>
-        </div>
-        <div class="col-6 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-secondary w-100" href="agent-login.php">Agent Login</a>
-        </div>
-        <div class="col-12 col-md-4 col-xl">
-            <a class="quick-action btn btn-outline-danger w-100" href="logout.php">Logout</a>
-        </div>
-    </section>
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="view-complaints.php" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Total Complaints</div>
+                    <div class="display-6 fw-bold"><?php echo $total_complaints; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
 
-    <section class="row g-3 mb-4">
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Total Complaints</div><div class="display-6 fw-bold"><?php echo $total_complaints; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Open</div><div class="display-6 fw-bold"><?php echo $open_count; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">In Progress</div><div class="display-6 fw-bold"><?php echo $in_progress_count; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Resolved</div><div class="display-6 fw-bold"><?php echo $resolved_count; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Closed</div><div class="display-6 fw-bold"><?php echo $closed_count; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Most Urgent</div><div class="display-6 fw-bold text-danger"><?php echo $most_urgent_count; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Today Complaints</div><div class="display-6 fw-bold"><?php echo $today_count; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Current Month</div><div class="display-6 fw-bold"><?php echo $month_count; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Total Jobs</div><div class="display-6 fw-bold"><?php echo $total_jobs; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Total Vendors</div><div class="display-6 fw-bold"><?php echo $total_vendors; ?></div></div></div></div>
-        <div class="col-6 col-lg-4 col-xxl-2"><div class="card dashboard-card metric-card"><div class="card-body"><div class="metric-label">Total Agents</div><div class="display-6 fw-bold"><?php echo $total_agents; ?></div></div></div></div>
-    </section>
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="view-complaints.php?status=Open" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Open</div>
+                    <div class="display-6 fw-bold"><?php echo $open_count; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="view-complaints.php?status=In+Progress" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">In Progress</div>
+                    <div class="display-6 fw-bold"><?php echo $in_progress_count; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="view-complaints.php?status=Resolved" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Resolved</div>
+                    <div class="display-6 fw-bold"><?php echo $resolved_count; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="view-complaints.php?status=Closed" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Closed</div>
+                    <div class="display-6 fw-bold"><?php echo $closed_count; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="view-complaints.php?priority=Most+Urgent" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Most Urgent</div>
+                    <div class="display-6 fw-bold text-danger"><?php echo $most_urgent_count; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="view-complaints.php?today=1" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Today Complaints</div>
+                    <div class="display-6 fw-bold"><?php echo $today_count; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="view-complaints.php?month=current" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Current Month</div>
+                    <div class="display-6 fw-bold"><?php echo $month_count; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="jobs.php" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Total Jobs</div>
+                    <div class="display-6 fw-bold"><?php echo $total_jobs; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="vendors.php" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Total Vendors</div>
+                    <div class="display-6 fw-bold"><?php echo $total_vendors; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+        <a href="agents.php" class="text-decoration-none text-dark">
+            <div class="card dashboard-card metric-card clickable-card">
+                <div class="card-body">
+                    <div class="metric-label">Total Agents</div>
+                    <div class="display-6 fw-bold"><?php echo $total_agents; ?></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+</section>
 
     <section class="row g-4 mb-4">
         <div class="col-xl-8">
