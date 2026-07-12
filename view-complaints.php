@@ -19,6 +19,9 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['searc
 $filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
 $job = isset($_GET['job']) ? $_GET['job'] : "";
 
+$priority = isset($_GET['priority']) ? $_GET['priority'] : "";
+$today = isset($_GET['today']) ? $_GET['today'] : "";
+
 $where = "WHERE 1";
 if($job != ""){
     $where .= " AND complaints.job_id='$job'";
