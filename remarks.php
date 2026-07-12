@@ -31,6 +31,40 @@ if (isset($_POST['save_remark'])) {
         $_POST['secondary_tracking_number'] ?? ''
     );
 
+    $drs_path = $complaint['drs_copy'] ?? '';
+
+    if (
+        isset($_FILES['drs_copy']) &&
+        $_FILES['drs_copy']['error'] === UPLOAD_ERR_OK
+    ) {
+        $allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png'];
+
+        $original_name = $_FILES['drs_copy']['name'];
+        $temporary_name = $_FILES['drs_copy']['tmp_name'];
+        $extension = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+
+        if (in_array($extension, $allowed_extensions, true)) {
+
+            $upload_directory = __DIR__ . '/uploads/drs/';
+
+            if (!is_dir($upload_directory)) {
+                mkdir($upload_directory, 0755, true);
+            }
+
+            $new_file_name =
+                'DRS_' .
+                $id . '_' .
+                time() . '.' .
+                $extension;
+
+            $destination = $upload_directory . $new_file_name;
+
+            if (move_uploaded_file($temporary_name, $destination)) {
+                $drs_path = 'uploads/drs/' . $new_file_name;
+            }
+        }
+    }
+
     mysqli_query($conn, "
         INSERT INTO complaint_remarks
         (complaint_id, remark, status)
@@ -42,7 +76,8 @@ if (isset($_POST['save_remark'])) {
         UPDATE complaints SET
             status='$status',
             secondary_tracking_number='$secondary_tracking_number',
-            closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . "
+            closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . ",
+            drs_copy='" . mysqli_real_escape_string($conn, $drs_path) . "'
         WHERE id='$id'
     ");
 
@@ -96,7 +131,7 @@ $remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_
 
         <div class="card-body">
 
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
 
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select mb-3" required>
@@ -114,6 +149,29 @@ $remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_
     value="<?php echo htmlspecialchars($complaint['secondary_tracking_number'] ?? ''); ?>"
 >
                 
+                <div class="col-md-6">
+    <label for="drs_copy" class="form-label">
+        DRS Copy (Optional)
+    </label>
+
+    <input
+        type="file"
+        name="drs_copy"
+        id="drs_copy"
+        class="form-control"
+        accept=".pdf,.jpg,.jpeg,.png"
+    >
+
+    <?php if (!empty($complaint['drs_copy'])): ?>
+        <small class="text-success">
+            Current File:
+            <a href="<?php echo $complaint['drs_copy']; ?>" target="_blank">
+                View DRS
+            </a>
+        </small>
+    <?php endif; ?>
+</div>
+
                 <label class="form-label">Closing Date</label>
                 <input type="date" name="closing_date" class="form-control mb-3" value="<?php echo $complaint['closing_date']; ?>">
 
