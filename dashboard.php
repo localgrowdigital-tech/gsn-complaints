@@ -268,6 +268,46 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
 
 <section class="row g-3 mb-4">
 
+    <div class="col-6 col-md-4 col-xl">
+        <a class="quick-action btn btn-primary w-100" href="add-complaint.php">
+            Add Complaint
+        </a>
+    </div>
+
+    <div class="col-6 col-md-4 col-xl">
+        <a class="quick-action btn btn-outline-primary w-100" href="view-complaints.php">
+            View Complaints
+        </a>
+    </div>
+
+    <div class="col-6 col-md-4 col-xl">
+        <a class="quick-action btn btn-outline-primary w-100" href="jobs.php">
+            Jobs
+        </a>
+    </div>
+
+    <div class="col-6 col-md-4 col-xl">
+        <a class="quick-action btn btn-outline-primary w-100" href="vendors.php">
+            Vendors
+        </a>
+    </div>
+
+    <div class="col-6 col-md-4 col-xl">
+        <a class="quick-action btn btn-outline-primary w-100" href="agents.php">
+            Agents
+        </a>
+    </div>
+
+    <div class="col-12 col-md-4 col-xl">
+        <a class="quick-action btn btn-outline-danger w-100" href="logout.php">
+            Logout
+        </a>
+    </div>
+
+</section>
+
+<section class="row g-3 mb-4">
+
     <div class="col-6 col-lg-4 col-xxl-2">
         <a href="view-complaints.php" class="text-decoration-none text-dark">
             <div class="card dashboard-card metric-card clickable-card">
