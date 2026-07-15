@@ -93,6 +93,59 @@ if (isset($_POST['save_remark'])) {
             drs_copy='" . mysqli_real_escape_string($conn, $drs_path) . "'
         WHERE id='$id'
     ");
+     
+    // Remark
+if (!empty($remark)) {
+    addTimeline(
+        $conn,
+        $id,
+        'Remark Added',
+        $remark,
+        'Admin',
+        $_SESSION['admin'] ?? 'Admin'
+    );
+}
+
+// Status (sirf tab jab change hua ho)
+if ($status != $complaint['status']) {
+    addTimeline(
+        $conn,
+        $id,
+        'Status Changed',
+        $complaint['status'] . ' → ' . $status,
+        'Admin',
+        $_SESSION['admin'] ?? 'Admin'
+    );
+}
+
+// Secondary Tracking
+if (
+    $secondary_tracking_number != '' &&
+    $secondary_tracking_number != ($complaint['secondary_tracking_number'] ?? '')
+) {
+    addTimeline(
+        $conn,
+        $id,
+        'Secondary Tracking Added',
+        $secondary_tracking_number,
+        'Admin',
+        $_SESSION['admin'] ?? 'Admin'
+    );
+}
+
+// DRS Upload
+if (
+    !empty($_FILES['drs_copy']['name'])
+) {
+    addTimeline(
+        $conn,
+        $id,
+        'DRS Uploaded',
+        basename($drs_path),
+        'Admin',
+        $_SESSION['admin'] ?? 'Admin'
+    );
+}    
 
     header(
     "Location: remarks.php?id=$id&back=" .
