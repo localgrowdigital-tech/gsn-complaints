@@ -22,15 +22,25 @@ if (!$complaint) {
     die("Complaint not found");
 }
 
-$remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_id='$id' ORDER BY id DESC");
-?>
+$remarks = mysqli_query(
+    $conn,
+    "SELECT * FROM complaint_remarks
+     WHERE complaint_id='$id'
+     ORDER BY id DESC"
+);
 
-$timeline = mysqli_query($conn, "
-    SELECT *
-    FROM complaint_timeline
-    WHERE complaint_id='$id'
-    ORDER BY created_at DESC
-");
+$timeline = mysqli_query(
+    $conn,
+    "SELECT *
+     FROM complaint_timeline
+     WHERE complaint_id='$id'
+     ORDER BY created_at DESC"
+);
+
+if (!$timeline) {
+    die("Timeline query error: " . mysqli_error($conn));
+}
+?>
 
 <!DOCTYPE html>
 <html>
