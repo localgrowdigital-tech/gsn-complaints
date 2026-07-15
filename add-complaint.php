@@ -2,6 +2,8 @@
 session_start();
 include 'db.php';
 
+require_once 'includes/timeline.php';
+
 $jobs = mysqli_query($conn, "SELECT * FROM jobs WHERE status='Active' ORDER BY job_name ASC");
 
 if (!isset($_SESSION['admin'])) {
@@ -28,9 +30,24 @@ VALUES
 ('$complaint_id', '$job_id', '$complaint_date', '$tracking_number', '$secondary_tracking_number', '$customer_name', '$mobile', '$address', '$complaint_type', '$description', '$status')";
 
 if (mysqli_query($conn, $sql)) {
+
+    $newComplaintId = mysqli_insert_id($conn);
+
+    addTimeline(
+        $conn,
+        $newComplaintId,
+        'Complaint Created',
+        'Complaint ID: ' . $complaint_id,
+        'Admin',
+        $_SESSION['admin'] ?? 'Admin'
+    );
+
     $success = "Complaint Added Successfully. Complaint ID: " . $complaint_id;
+
 } else {
+
     $error = "Error: " . mysqli_error($conn);
+
 }
 
 }
