@@ -100,11 +100,32 @@ if (isset($_GET['export'])) {
 }
 
 $result = mysqli_query($conn, "
-SELECT complaints.*, jobs.job_name
-FROM complaints
-LEFT JOIN jobs ON complaints.job_id = jobs.id
-$where
-ORDER BY complaints.id DESC
+    SELECT
+        complaints.*,
+        jobs.job_name,
+
+        CASE
+            WHEN complaints.status IN ('Closed', 'Resolved')
+                 AND complaints.closing_date IS NOT NULL
+            THEN DATEDIFF(
+                complaints.closing_date,
+                complaints.complaint_date
+            )
+
+            ELSE DATEDIFF(
+                CURDATE(),
+                complaints.complaint_date
+            )
+        END AS pending_days
+
+    FROM complaints
+
+    LEFT JOIN jobs
+        ON complaints.job_id = jobs.id
+
+    $where
+
+    ORDER BY complaints.id DESC
 ");
 ?>
 
@@ -249,6 +270,7 @@ while($jobRow = mysqli_fetch_assoc($jobsList)) {
                         <th>Customer</th>
                         <th>Mobile</th>
                         <th>Status</th>
+                        <th>Pending Days</th>
                         <th>Closing Date</th>
                         <th>Details</th>
                         <th>Remarks</th>
@@ -270,7 +292,6 @@ while($jobRow = mysqli_fetch_assoc($jobsList)) {
                                     <td><b><?php echo $row['complaint_id']; ?></b></td>
                                     <td><?php echo $row['complaint_date']; ?></td>
                                     <td><?php echo $row['job_name'] ? $row['job_name'] : 'No Job'; ?></td>
-                                    <td><?php echo $row['job_name']; ?></td>
                                     <td><?php echo $row['tracking_number']; ?></td>
                                     <td><?php echo $row['customer_name']; ?></td>
                                     <td><?php echo $row['mobile']; ?></td>
@@ -284,8 +305,23 @@ while($jobRow = mysqli_fetch_assoc($jobsList)) {
                                         </select>
                                     </td>
                                         
-                                    <td>
+                                    <td> 
+                                    <?php
+                                    $days = (int)($row['pending_days'] ?? 0);
 
+                                    if ($days >= 15) {
+                                       echo "<span class='badge bg-danger'>{$days} Days</span>";
+                                    } elseif ($days >= 8) {
+                                        echo "<span class='badge bg-warning text-dark'>{$days} Days</span>";
+                                    } elseif ($days >= 4) {
+                                        echo "<span class='badge bg-info text-dark'>{$days} Days</span>";
+                                    } else {
+                                        echo "<span class='badge bg-success'>{$days} Days</span>";
+                                    }
+                                    ?>
+                                    </td>
+
+                                    <td>
                                        <input
                                            type="text"
                                            name="secondary_tracking_number"
