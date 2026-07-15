@@ -75,8 +75,16 @@ $job_filter = (int)($_GET['job_id'] ?? 0);
 $vendor_filter = (int)($_GET['vendor_id'] ?? 0);
 $status_filter = clean($conn, $_GET['status'] ?? '');
 $priority_filter = clean($conn, $_GET['priority'] ?? '');
+$old_filter = $_GET['old'] ?? '';
 
 $where = ["aj.agent_id = $agent_id"];
+
+if ($old_filter === '1') {
+    $where[] = "
+        c.status IN ('Open', 'In Progress')
+        AND DATEDIFF(CURDATE(), c.complaint_date) >= 4
+    ";
+}
 
 if ($search !== '') {
     $where[] = "(

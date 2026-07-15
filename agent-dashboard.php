@@ -53,6 +53,7 @@ $metricsSql = "
         SUM(CASE WHEN c.status IN ('Resolved', 'Closed') THEN 1 ELSE 0 END) AS resolved_count,
         SUM(CASE WHEN c.status = 'Closed' THEN 1 ELSE 0 END) AS closed_count,
         SUM(CASE WHEN c.priority = 'Most Urgent' THEN 1 ELSE 0 END) AS most_urgent_count,
+        SUM(CASE WHEN c.status IN ('Open', 'In Progress') AND DATEDIFF(CURDATE(), c.complaint_date) >= 4 THEN 1 ELSE 0 END) AS old_complaints_count,
         SUM(CASE WHEN DATE(c.complaint_date) = CURDATE() THEN 1 ELSE 0 END) AS today_count,
         SUM(CASE WHEN YEAR(c.complaint_date) = YEAR(CURDATE()) AND MONTH(c.complaint_date) = MONTH(CURDATE()) THEN 1 ELSE 0 END) AS month_count
     FROM complaints c
@@ -69,6 +70,7 @@ $inProgressCount = (int)($metrics['in_progress_count'] ?? 0);
 $resolvedCount = (int)($metrics['resolved_count'] ?? 0);
 $closedCount = (int)($metrics['closed_count'] ?? 0);
 $mostUrgentCount = (int)($metrics['most_urgent_count'] ?? 0);
+$oldComplaintsCount = (int)($metrics['old_complaints_count'] ?? 0);
 $todayCount = (int)($metrics['today_count'] ?? 0);
 $monthCount = (int)($metrics['month_count'] ?? 0);
 
@@ -353,6 +355,29 @@ $resolvedPercent = $totalComplaints > 0 ? round(($resolvedCount / $totalComplain
                 </div>
             </a>
         </div>
+
+        <div class="col-6 col-lg-4 col-xxl-2">
+    <a
+        href="agent-complaints.php?old=1"
+        class="text-decoration-none text-dark"
+    >
+        <div class="card dashboard-card metric-card clickable-card">
+            <div class="card-body">
+                <div class="metric-label">
+                    Old Complaints
+                </div>
+
+                <div class="display-6 fw-bold text-danger">
+                    <?php echo $oldComplaintsCount; ?>
+                </div>
+
+                <small class="text-muted">
+                    Pending 4+ Days
+                </small>
+            </div>
+        </div>
+    </a>
+</div>
 
         <div class="col-6 col-lg-4 col-xxl-2">
             <a href="agent-complaints.php?today=1" class="text-decoration-none text-dark">
