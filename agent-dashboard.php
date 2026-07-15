@@ -464,46 +464,7 @@ $resolvedPercent = $totalComplaints > 0 ? round(($resolvedCount / $totalComplain
             </div>
         </div>
     </section>
-
-    <section class="row g-4">
-        <div class="col-xl-6">
-            <div class="card dashboard-card">
-                <div class="card-header bg-white fw-bold">Recent Complaints</div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                            <tr>
-                                <th>Complaint ID</th>
-                                <th>Customer</th>
-                                <th>Vendor</th>
-                                <th>Priority</th>
-                                <th>Status</th>
-                                <th>View</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <?php if ($recentResult && mysqli_num_rows($recentResult) > 0): ?>
-                                <?php while ($row = mysqli_fetch_assoc($recentResult)): ?>
-                                    <tr>
-                                        <td class="fw-semibold"><?php echo e($row['complaint_id'] ?: $row['id']); ?></td>
-                                        <td><?php echo e($row['customer_name']); ?></td>
-                                        <td><?php echo e($row['vendor_name'] ?: 'No Vendor'); ?></td>
-                                        <td><span class="badge <?php echo priority_class($row['priority']); ?>"><?php echo e($row['priority']); ?></span></td>
-                                        <td><span class="badge <?php echo badge_class($row['status']); ?>"><?php echo e($row['status']); ?></span></td>
-                                        <td><a class="btn btn-sm btn-outline-primary" href="complaint-details.php?id=<?php echo (int)$row['id']; ?>">View</a></td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <tr><td colspan="6" class="text-center text-muted py-4">No recent complaints found.</td></tr>
-                            <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+                    
         <div class="col-xl-3">
             <div class="card dashboard-card h-100">
                 <div class="card-header bg-white fw-bold">Job Summary</div>
