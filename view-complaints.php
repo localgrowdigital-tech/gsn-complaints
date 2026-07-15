@@ -9,21 +9,21 @@ if (!isset($_SESSION['admin'])) {
 
 if (isset($_POST['update'])) {
 
-    $id = (int)$_POST['id'];
+    $id = (int)($_POST['id'] ?? 0);
 
     $status = mysqli_real_escape_string(
         $conn,
-        $_POST['status']
+        $_POST['status'] ?? ''
     );
 
     $closing_date = mysqli_real_escape_string(
         $conn,
-        $_POST['closing_date']
+        $_POST['closing_date'] ?? ''
     );
 
     $secondary_tracking_number = mysqli_real_escape_string(
         $conn,
-        $_POST['secondary_tracking_number']
+        $_POST['secondary_tracking_number'] ?? ''
     );
 
     $vendor_id = !empty($_POST['vendor_id'])
@@ -33,23 +33,25 @@ if (isset($_POST['update'])) {
     mysqli_query($conn, "
         UPDATE complaints SET
             status='$status',
-            closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . ",
+            closing_date=" . (
+                $closing_date !== ''
+                    ? "'$closing_date'"
+                    : "NULL"
+            ) . ",
             secondary_tracking_number='$secondary_tracking_number',
             vendor_id='$vendor_id'
-        WHERE id='$id'
-    );
-
+        WHERE id=$id
+    ");
 }
 
 $vendor_options = [];
 
-$vendors_result = mysqli_query(
-    $conn,
-    "SELECT id, vendor_name
-     FROM vendors
-     WHERE status='Active'
-     ORDER BY vendor_name ASC"
-);
+$vendors_result = mysqli_query($conn, "
+    SELECT id, vendor_name
+    FROM vendors
+    WHERE status='Active'
+    ORDER BY vendor_name ASC
+");
 
 if ($vendors_result) {
     while ($vendor = mysqli_fetch_assoc($vendors_result)) {
@@ -57,13 +59,18 @@ if ($vendors_result) {
     }
 }
 
-$search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-$filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
-$job = isset($_GET['job']) ? $_GET['job'] : "";
+$search = isset($_GET['search'])
+    ? mysqli_real_escape_string($conn, $_GET['search'])
+    : '';
 
-$priority = isset($_GET['priority']) ? $_GET['priority'] : "";
-$today = isset($_GET['today']) ? $_GET['today'] : "";
-$old = isset($_GET['old']) ? $_GET['old'] : "";
+$filter = isset($_GET['status'])
+    ? mysqli_real_escape_string($conn, $_GET['status'])
+    : '';
+
+$job = isset($_GET['job']) ? $_GET['job'] : '';
+$priority = isset($_GET['priority']) ? $_GET['priority'] : '';
+$today = isset($_GET['today']) ? $_GET['today'] : '';
+$old = isset($_GET['old']) ? $_GET['old'] : '';
 
 $where = "WHERE 1";
 if($job != ""){
