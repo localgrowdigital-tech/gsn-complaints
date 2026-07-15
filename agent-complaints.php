@@ -106,9 +106,28 @@ if ($priority_filter !== '' && in_array($priority_filter, $allowed_priorities, t
 $where_sql = implode(' AND ', $where);
 
 $complaints_sql = "
-    SELECT c.id, c.complaint_id, c.complaint_date, c.tracking_number, c.customer_name,
-           c.mobile, c.priority, c.status, c.closing_date,
-           j.job_name, v.vendor_name
+    SELECT
+        c.id,
+        c.complaint_id,
+        c.complaint_date,
+        c.tracking_number,
+        c.customer_name,
+        c.mobile,
+        c.priority,
+        c.status,
+        c.closing_date,
+
+        CASE
+            WHEN c.status IN ('Closed','Resolved')
+                 AND c.closing_date IS NOT NULL
+            THEN DATEDIFF(c.closing_date, c.complaint_date)
+
+            ELSE DATEDIFF(CURDATE(), c.complaint_date)
+        END AS pending_days,
+
+        j.job_name,
+        v.vendor_name
+
     FROM complaints c
     INNER JOIN agent_jobs aj ON aj.job_id = c.job_id
     LEFT JOIN jobs j ON j.id = c.job_id
@@ -126,7 +145,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'xls') {
     header('Expires: 0');
 
     echo "<table border='1'>";
-    echo "<tr><th>ID</th><th>Complaint ID</th><th>Date</th><th>Job</th><th>Vendor</th><th>Tracking</th><th>Customer</th><th>Mobile</th><th>Priority</th><th>Status</th><th>Closing Date</th></tr>";
+    echo "<tr><th>ID</th><th>Complaint ID</th><th>Date</th><th>Job</th><th>Vendor</th><th>Tracking</th><th>Customer</th><th>Mobile</th><th>Priority</th><th>Status</th><th>Pending Days</th><th>Closing Date</th></tr>";
 
     if ($export_result) {
         while ($row = mysqli_fetch_assoc($export_result)) {
@@ -335,6 +354,7 @@ $export_url = 'agent-complaints.php?' . http_build_query($export_query);
                         <th>Mobile</th>
                         <th>Priority</th>
                         <th>Status</th>
+                        <th>Pending Days</th>
                         <th>Closing Date</th>
                         <th>Details</th>
                         <th>Remarks</th>
@@ -349,7 +369,7 @@ $export_url = 'agent-complaints.php?' . http_build_query($export_query);
                                 <td class="fw-semibold"><?php echo e($row['complaint_id']); ?></td>
                                 <td><?php echo e($row['complaint_date']); ?></td>
                                 <td><?php echo e($row['job_name']); ?></td>
-                                <td><?php echo e($row['vendor_name'] ?: 'No Vendor'); ?></td>
+                                <td><?php echo e($row['vendor_name'] ?: 'No Vendor'); ?></td><input type="hidden" name="complaint_db_id" value="<?php echo (int)$row['id']; ?>">
                                 <td><?php echo e($row['tracking_number']); ?></td>
                                 <td><?php echo e($row['customer_name']); ?></td>
                                 <td><?php echo e($row['mobile']); ?></td>
@@ -357,17 +377,64 @@ $export_url = 'agent-complaints.php?' . http_build_query($export_query);
                                 <form method="post">
                                     <input type="hidden" name="complaint_db_id" value="<?php echo (int)$row['id']; ?>">
                                     <td>
-                                        <select name="status" class="form-select form-select-sm update-status">
-                                            <?php foreach ($allowed_statuses as $status): ?>
-                                                <option value="<?php echo e($status); ?>" <?php echo $row['status'] === $status ? 'selected' : ''; ?>><?php echo e($status); ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <input type="date" name="closing_date" class="form-control form-control-sm closing-date" value="<?php echo e($row['closing_date']); ?>">
-                                    </td>
-                                    <td><a href="agent-complaint-details.php?id=<?php echo (int)$row['id']; ?>" class="btn btn-sm btn-outline-secondary">Details</a></td>
-                                    <td>
+                                        <input
+    type="hidden"
+    name="complaint_db_id"
+    value="<?php echo (int)$row['id']; ?>"
+>
+
+<td>
+    <select
+        name="status"
+        class="form-select form-select-sm update-status"
+    >
+        <?php foreach ($allowed_statuses as $status): ?>
+            <option
+                value="<?php echo e($status); ?>"
+                <?php echo $row['status'] === $status ? 'selected' : ''; ?>
+            >
+                <?php echo e($status); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</td>
+
+<!-- Pending Days -->
+<td>
+    <?php
+    $days = (int)($row['pending_days'] ?? 0);
+
+    if ($days >= 15) {
+        echo "<span class='badge bg-danger'>{$days} Days</span>";
+    } elseif ($days >= 8) {
+        echo "<span class='badge bg-warning text-dark'>{$days} Days</span>";
+    } elseif ($days >= 4) {
+        echo "<span class='badge bg-info text-dark'>{$days} Days</span>";
+    } else {
+        echo "<span class='badge bg-success'>{$days} Days</span>";
+    }
+    ?>
+</td>
+
+<td>
+    <input
+        type="date"
+        name="closing_date"
+        class="form-control form-control-sm closing-date"
+        value="<?php echo e($row['closing_date']); ?>"
+    >
+</td>
+
+<td>
+    <a
+        href="agent-complaint-details.php?id=<?php echo (int)$row['id']; ?>"
+        class="btn btn-sm btn-outline-secondary"
+    >
+        Details
+    </a>
+</td>
+
+<td>
     <a
         href="agent-remarks.php?id=<?php echo (int)$row['id']; ?>&back=<?php echo rawurlencode($_SERVER['REQUEST_URI']); ?>"
         class="btn btn-sm btn-outline-primary"
