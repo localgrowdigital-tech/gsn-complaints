@@ -8,21 +8,53 @@ if (!isset($_SESSION['admin'])) {
 }
 
 if (isset($_POST['update'])) {
+
     $id = (int)$_POST['id'];
-    $status = mysqli_real_escape_string($conn, $_POST['status']);
-    $closing_date = mysqli_real_escape_string($conn, $_POST['closing_date']);
+
+    $status = mysqli_real_escape_string(
+        $conn,
+        $_POST['status']
+    );
+
+    $closing_date = mysqli_real_escape_string(
+        $conn,
+        $_POST['closing_date']
+    );
+
     $secondary_tracking_number = mysqli_real_escape_string(
         $conn,
         $_POST['secondary_tracking_number']
     );
 
+    $vendor_id = !empty($_POST['vendor_id'])
+        ? (int)$_POST['vendor_id']
+        : 0;
+
     mysqli_query($conn, "
         UPDATE complaints SET
             status='$status',
             closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . ",
-            secondary_tracking_number='$secondary_tracking_number'
+            secondary_tracking_number='$secondary_tracking_number',
+            vendor_id='$vendor_id'
         WHERE id='$id'
-    ");
+    );
+
+}
+
+$vendor_options = [];
+
+$vendors_result = mysqli_query(
+    $conn,
+    "SELECT id, vendor_name
+     FROM vendors
+     WHERE status='Active'
+     ORDER BY vendor_name ASC"
+);
+
+if ($vendors_result) {
+    while ($vendor = mysqli_fetch_assoc($vendors_result)) {
+        $vendor_options[] = $vendor;
+    }
 }
 
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
@@ -72,15 +104,16 @@ if (isset($_GET['export'])) {
     header("Content-Type: application/vnd.ms-excel");
     header("Content-Disposition: attachment; filename=complaints.xls");
 
-    echo "ID\tComplaint ID\tDate\tJob\tTracking\tSecondary Tracking\tCustomer\tMobile\tStatus\tClosing Date\n";
+    echo "ID\tComplaint ID\tDate\tJob\tVendor\tTracking\tSecondary Tracking\tCustomer\tMobile\tStatus\tClosing Date\n";
 
     $export = mysqli_query($conn, "
-    SELECT complaints.*, jobs.job_name
+    SELECT complaints.*, jobs.job_name, vendors.vendor_name
     FROM complaints
     LEFT JOIN jobs ON complaints.job_id = jobs.id
+    LEFT JOIN vendors ON complaints.vendor_id = vendors.id
     $where
     ORDER BY complaints.id DESC
-    ");
+");
 
     while ($row = mysqli_fetch_assoc($export)) {
 
@@ -88,6 +121,7 @@ if (isset($_GET['export'])) {
              $row['complaint_id']."\t".
              $row['complaint_date']."\t".
              $row['job_name']."\t".
+             ($row['vendor_name'] ?: 'No Vendor')."\t".
              $row['tracking_number']."\t".
              $row['secondary_tracking_number']."\t".
              $row['customer_name']."\t".
@@ -103,6 +137,7 @@ $result = mysqli_query($conn, "
     SELECT
         complaints.*,
         jobs.job_name,
+        vendors.vendor_name,
 
         CASE
             WHEN complaints.status IN ('Closed', 'Resolved')
@@ -111,7 +146,6 @@ $result = mysqli_query($conn, "
                 complaints.closing_date,
                 complaints.complaint_date
             )
-
             ELSE DATEDIFF(
                 CURDATE(),
                 complaints.complaint_date
@@ -122,6 +156,9 @@ $result = mysqli_query($conn, "
 
     LEFT JOIN jobs
         ON complaints.job_id = jobs.id
+
+    LEFT JOIN vendors
+        ON complaints.vendor_id = vendors.id
 
     $where
 
@@ -292,7 +329,41 @@ while($jobRow = mysqli_fetch_assoc($jobsList)) {
                                     <td><b><?php echo $row['complaint_id']; ?></b></td>
                                     <td><?php echo $row['complaint_date']; ?></td>
                                     <td><?php echo $row['job_name'] ? $row['job_name'] : 'No Job'; ?></td>
-                                    <td><?php echo $row['tracking_number']; ?></td>
+
+<td>
+    <select name="vendor_id" class="form-select form-select-sm">
+
+        <option
+            value="0"
+            <?php echo ((int)($row['vendor_id'] ?? 0) === 0) ? 'selected' : ''; ?>
+        >
+            No Vendor
+        </option>
+
+        <?php foreach ($vendor_options as $vendor) { ?>
+
+            <option
+                value="<?php echo (int)$vendor['id']; ?>"
+                <?php
+                echo ((int)($row['vendor_id'] ?? 0) === (int)$vendor['id'])
+                    ? 'selected'
+                    : '';
+                ?>
+            >
+                <?php echo htmlspecialchars(
+                    $vendor['vendor_name'],
+                    ENT_QUOTES,
+                    'UTF-8'
+                ); ?>
+            </option>
+
+        <?php } ?>
+
+    </select>
+</td>
+
+<td><?php echo htmlspecialchars($row['tracking_number']); ?></td>
+
                                     <td><?php echo $row['customer_name']; ?></td>
                                     <td><?php echo $row['mobile']; ?></td>
 

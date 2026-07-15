@@ -6,12 +6,21 @@ require_once 'includes/timeline.php';
 
 $jobs = mysqli_query($conn, "SELECT * FROM jobs WHERE status='Active' ORDER BY job_name ASC");
 
+$vendors = mysqli_query(
+    $conn,
+    "SELECT id, vendor_name
+     FROM vendors
+     WHERE status='Active'
+     ORDER BY vendor_name ASC"
+);
+
 if (!isset($_SESSION['admin'])) {
     header("Location: index.php");
     exit();
 }
 
 if (isset($_POST['save'])) {
+
     $complaint_id = "GSN" . rand(10000, 99999);
     $complaint_date = $_POST['complaint_date'];
     $tracking_number = $_POST['tracking_number'];
@@ -22,36 +31,63 @@ if (isset($_POST['save'])) {
     $complaint_type = $_POST['complaint_type'];
     $description = $_POST['description'];
     $status = "Open";
-    $job_id = $_POST['job_id'];
+    $job_id = (int)$_POST['job_id'];
 
-$sql = "INSERT INTO complaints
-(complaint_id, job_id, complaint_date, tracking_number, secondary_tracking_number, customer_name, mobile, address, complaint_type, description, status)
-VALUES
-('$complaint_id', '$job_id', '$complaint_date', '$tracking_number', '$secondary_tracking_number', '$customer_name', '$mobile', '$address', '$complaint_type', '$description', '$status')";
+    $vendor_id = !empty($_POST['vendor_id'])
+        ? (int)$_POST['vendor_id']
+        : 0;
 
-if (mysqli_query($conn, $sql)) {
+    $sql = "INSERT INTO complaints
+    (
+        complaint_id,
+        job_id,
+        vendor_id,
+        complaint_date,
+        tracking_number,
+        secondary_tracking_number,
+        customer_name,
+        mobile,
+        address,
+        complaint_type,
+        description,
+        status
+    )
+    VALUES
+    (
+        '$complaint_id',
+        '$job_id',
+        '$vendor_id',
+        '$complaint_date',
+        '$tracking_number',
+        '$secondary_tracking_number',
+        '$customer_name',
+        '$mobile',
+        '$address',
+        '$complaint_type',
+        '$description',
+        '$status'
+    )";
 
-    $newComplaintId = mysqli_insert_id($conn);
+    if (mysqli_query($conn, $sql)) {
 
-    addTimeline(
-        $conn,
-        $newComplaintId,
-        'Complaint Created',
-        'Complaint ID: ' . $complaint_id,
-        'Admin',
-        $_SESSION['admin'] ?? 'Admin'
-    );
+        $newComplaintId = mysqli_insert_id($conn);
 
-    $success = "Complaint Added Successfully. Complaint ID: " . $complaint_id;
+        addTimeline(
+            $conn,
+            $newComplaintId,
+            'Complaint Created',
+            'Complaint ID: ' . $complaint_id,
+            'Admin',
+            $_SESSION['admin'] ?? 'Admin'
+        );
 
-} else {
+        $success = "Complaint Added Successfully. Complaint ID: " . $complaint_id;
 
-    $error = "Error: " . mysqli_error($conn);
+    } else {
 
+        $error = "Error: " . mysqli_error($conn);
+    }
 }
-
-}
-
 ?>
 
 <!DOCTYPE html>
@@ -96,6 +132,22 @@ if (mysqli_query($conn, $sql)) {
         <?php } ?>
 
         </select>
+
+        <label class="form-label">Vendor</label>
+
+<select name="vendor_id" class="form-control mb-3">
+
+    <option value="">Select Vendor</option>
+
+    <?php while($vendor = mysqli_fetch_assoc($vendors)) { ?>
+
+        <option value="<?php echo $vendor['id']; ?>">
+            <?php echo $vendor['vendor_name']; ?>
+        </option>
+
+    <?php } ?>
+
+</select>
 
         <label class="form-label">Complaint Date</label>
         <input type="date" name="complaint_date" required class="form-control mb-3">
