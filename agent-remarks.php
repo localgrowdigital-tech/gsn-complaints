@@ -97,6 +97,21 @@ if (!$complaint) {
 }
 
 $allowed_statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
+$vendor_options = [];
+
+$vendors_result = mysqli_query(
+    $conn,
+    "SELECT id, vendor_name
+     FROM vendors
+     WHERE status='Active'
+     ORDER BY vendor_name ASC"
+);
+
+if ($vendors_result) {
+    while ($vendor = mysqli_fetch_assoc($vendors_result)) {
+        $vendor_options[] = $vendor;
+    }
+}
 $remarks_has_agent_id = table_has_column($conn, 'complaint_remarks', 'agent_id');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -109,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn,
         $_POST['secondary_tracking_number'] ?? ''
     );
+    $vendor_id = (int)($_POST['vendor_id'] ?? 0);
 
     if ($remark === '') {
 
@@ -280,14 +296,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      * closing date and optional DRS copy.
                      */
                     $update_sql = "
-                        UPDATE complaints SET
-                            status = '$status',
-                            secondary_tracking_number =
-                                '$secondary_tracking_number',
-                            closing_date = $closing_sql,
-                            drs_copy = '$safe_drs_path'
-                        WHERE id = $complaint_db_id
-                    ";
+    UPDATE complaints SET
+        status = '$status',
+        vendor_id = $vendor_id,
+        secondary_tracking_number =
+            '$secondary_tracking_number',
+        closing_date = $closing_sql,
+        drs_copy = '$safe_drs_path'
+    WHERE id = $complaint_db_id
+";
 
                     if (mysqli_query($conn, $update_sql)) {
 
@@ -549,7 +566,33 @@ $remarks_result = mysqli_query($conn, "
             <?php endforeach; ?>
         </select>
     </div>
+    
+    <div class="col-md-4">
+    <label class="form-label">Vendor</label>
 
+    <select
+        name="vendor_id"
+        class="form-select"
+    >
+        <option value="0">No Vendor</option>
+
+        <?php foreach ($vendor_options as $vendor): ?>
+
+            <option
+                value="<?php echo (int)$vendor['id']; ?>"
+                <?php
+                echo ((int)($complaint['vendor_id'] ?? 0) === (int)$vendor['id'])
+                    ? 'selected'
+                    : '';
+                ?>
+            >
+                <?php echo e($vendor['vendor_name']); ?>
+            </option>
+
+        <?php endforeach; ?>
+    </select>
+</div>
+    
     <div class="col-md-4">
         <label for="secondary_tracking_number" class="form-label">
             Secondary Tracking Number
