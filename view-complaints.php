@@ -31,6 +31,7 @@ $job = isset($_GET['job']) ? $_GET['job'] : "";
 
 $priority = isset($_GET['priority']) ? $_GET['priority'] : "";
 $today = isset($_GET['today']) ? $_GET['today'] : "";
+$old = isset($_GET['old']) ? $_GET['old'] : "";
 
 $where = "WHERE 1";
 if($job != ""){
@@ -58,6 +59,13 @@ if ($priority != "") {
 
 if ($today == "1") {
     $where .= " AND DATE(complaints.complaint_date)=CURDATE()";
+}
+
+if ($old == "1") {
+    $where .= "
+        AND complaints.status IN ('Open', 'In Progress')
+        AND DATEDIFF(CURDATE(), complaints.complaint_date) >= 4
+    ";
 }
 
 if (isset($_GET['export'])) {

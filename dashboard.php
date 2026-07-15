@@ -76,6 +76,20 @@ $total_jobs = count_value($conn, "SELECT COUNT(*) FROM jobs");
 $total_vendors = count_value($conn, "SELECT COUNT(*) FROM vendors");
 $total_agents = count_value($conn, "SELECT COUNT(*) FROM agents");
 
+$old_complaints_result = mysqli_query($conn, "
+    SELECT COUNT(*) AS total
+    FROM complaints
+    WHERE status IN ('Open', 'In Progress')
+      AND DATEDIFF(CURDATE(), complaint_date) >= 4
+");
+
+$old_complaints_count = 0;
+
+if ($old_complaints_result) {
+    $old_row = mysqli_fetch_assoc($old_complaints_result);
+    $old_complaints_count = (int)($old_row['total'] ?? 0);
+}
+
 $job_summary = mysqli_query($conn, "
     SELECT j.job_name,
            COUNT(c.id) AS total_count,
@@ -373,6 +387,31 @@ $resolved_percent = $total_complaints > 0 ? round((($resolved_count + $closed_co
             </div>
         </a>
     </div>
+
+    <div class="col-6 col-lg-4 col-xxl-2">
+    <a
+        href="view-complaints.php?old=1"
+        class="text-decoration-none text-dark"
+    >
+        <div class="card dashboard-card metric-card clickable-card">
+            <div class="card-body">
+
+                <div class="metric-label">
+                    Old Complaints
+                </div>
+
+                <div class="display-6 fw-bold text-danger">
+                    <?php echo $old_complaints_count; ?>
+                </div>
+
+                <small class="text-muted">
+                    Pending 4+ Days
+                </small>
+
+            </div>
+        </div>
+    </a>
+</div>
 
     <div class="col-6 col-lg-4 col-xxl-2">
         <a href="view-complaints.php?today=1" class="text-decoration-none text-dark">
