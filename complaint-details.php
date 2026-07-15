@@ -2,6 +2,8 @@
 session_start();
 include 'db.php';
 
+require_once 'includes/timeline.php';
+
 if (!isset($_SESSION['admin'])) {
     header("Location: index.php");
     exit();
@@ -22,6 +24,13 @@ if (!$complaint) {
 
 $remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_id='$id' ORDER BY id DESC");
 ?>
+
+$timeline = mysqli_query($conn, "
+    SELECT *
+    FROM complaint_timeline
+    WHERE complaint_id='$id'
+    ORDER BY created_at DESC
+");
 
 <!DOCTYPE html>
 <html>
@@ -199,6 +208,50 @@ $remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_
 
         </div>
     </div>
+
+<div class="card mt-4">
+    <div class="card-header bg-dark text-white">
+        📜 Complaint Timeline
+    </div>
+
+    <div class="card-body">
+
+        <?php if (mysqli_num_rows($timeline) > 0) { ?>
+
+            <?php while ($row = mysqli_fetch_assoc($timeline)) { ?>
+
+                <div class="border-start border-4 border-primary ps-3 mb-4">
+
+                    <h6 class="fw-bold mb-1">
+                        <?php echo htmlspecialchars($row['action']); ?>
+                    </h6>
+
+                    <div class="text-muted small mb-2">
+                        <?php echo date('d M Y h:i A', strtotime($row['created_at'])); ?>
+                        |
+                        <?php echo htmlspecialchars($row['user_type']); ?>
+                        :
+                        <?php echo htmlspecialchars($row['user_name']); ?>
+                    </div>
+
+                    <?php if (!empty($row['details'])) { ?>
+                        <div>
+                            <?php echo nl2br(htmlspecialchars($row['details'])); ?>
+                        </div>
+                    <?php } ?>
+
+                </div>
+
+            <?php } ?>
+
+        <?php } else { ?>
+
+            <p class="text-muted">No timeline available.</p>
+
+        <?php } ?>
+
+    </div>
+</div>
 
 </div>
 
