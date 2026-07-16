@@ -4,6 +4,21 @@ include 'db.php';
 
 require_once 'includes/timeline.php';
 
+$vendor_options = [];
+
+$vendors_result = mysqli_query($conn, "
+    SELECT id, vendor_name
+    FROM vendors
+    WHERE status = 'Active'
+    ORDER BY vendor_name ASC
+");
+
+if ($vendors_result) {
+    while ($vendor = mysqli_fetch_assoc($vendors_result)) {
+        $vendor_options[] = $vendor;
+    }
+}
+
 if (!isset($_SESSION['admin'])) {
     header("Location: index.php");
     exit();
@@ -29,7 +44,16 @@ if (!empty($_GET['back'])) {
     }
 }
 
-$complaint = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM complaints WHERE id='$id'"));
+$complaint = mysqli_fetch_assoc(
+    mysqli_query($conn, "
+        SELECT complaints.*, vendors.vendor_name
+        FROM complaints
+        LEFT JOIN vendors
+            ON complaints.vendor_id = vendors.id
+        WHERE complaints.id = '$id'
+        LIMIT 1
+    ")
+);
 
 if (!$complaint) {
     die("Complaint not found");
@@ -40,6 +64,9 @@ if (isset($_POST['save_remark'])) {
     $remark = mysqli_real_escape_string($conn, $_POST['remark']);
     $status = mysqli_real_escape_string($conn, $_POST['status']);
     $closing_date = mysqli_real_escape_string($conn, $_POST['closing_date']);
+    $vendor_id = !empty($_POST['vendor_id'])
+    ? (int)$_POST['vendor_id']
+    : 0;
 
     $secondary_tracking_number = mysqli_real_escape_string(
         $conn,
@@ -90,6 +117,7 @@ if (isset($_POST['save_remark'])) {
     mysqli_query($conn, "
         UPDATE complaints SET
             status='$status',
+            vendor_id='$vendor_id',
             secondary_tracking_number='$secondary_tracking_number',
             closing_date=" . ($closing_date !== '' ? "'$closing_date'" : "NULL") . ",
             drs_copy='" . mysqli_real_escape_string($conn, $drs_path) . "'
@@ -193,6 +221,7 @@ $remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_
             <p><b>Mobile:</b> <?php echo $complaint['mobile']; ?></p>
             <p><b>Address:</b> <?php echo $complaint['address']; ?></p>
             <p><b>Complaint Type:</b> <?php echo $complaint['complaint_type']; ?></p>
+            <p><b>Vendor:</b> <?php echo htmlspecialchars($complaint['vendor_name'] ?: 'No Vendor', ENT_QUOTES, 'UTF-8'); ?></p>
             <p><b>Description:</b> <?php echo $complaint['description']; ?></p>
             <p><b>Current Status:</b> <?php echo $complaint['status']; ?></p>
             <p><b>Closing Date:</b> <?php echo $complaint['closing_date']; ?></p>
@@ -215,6 +244,31 @@ $remarks = mysqli_query($conn, "SELECT * FROM complaint_remarks WHERE complaint_
                     <option value="Resolved" <?php if($complaint['status']=="Resolved") echo "selected"; ?>>Resolved</option>
                     <option value="Closed" <?php if($complaint['status']=="Closed") echo "selected"; ?>>Closed</option>
                 </select>
+<label class="form-label">Vendor</label>
+
+<select name="vendor_id" class="form-select mb-3">
+    <option value="0">No Vendor</option>
+
+    <?php foreach ($vendor_options as $vendor): ?>
+        <option
+            value="<?php echo (int)$vendor['id']; ?>"
+            <?php
+            echo (
+                (int)($complaint['vendor_id'] ?? 0)
+                ===
+                (int)$vendor['id']
+            ) ? 'selected' : '';
+            ?>
+        >
+            <?php echo htmlspecialchars(
+                $vendor['vendor_name'],
+                ENT_QUOTES,
+                'UTF-8'
+            ); ?>
+        </option>
+    <?php endforeach; ?>
+</select>
+
                 <label class="form-label">Secondary Tracking Number</label>
 <input
     type="text"
