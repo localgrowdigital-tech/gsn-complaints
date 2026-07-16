@@ -2,6 +2,8 @@
 session_start();
 include 'db.php';
 
+require_once 'includes/timeline.php';
+
 if (!isset($_SESSION['admin'])) {
     header("Location: index.php");
     exit();
