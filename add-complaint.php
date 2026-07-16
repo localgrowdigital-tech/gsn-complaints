@@ -31,6 +31,7 @@ if (isset($_POST['save'])) {
     $complaint_type = $_POST['complaint_type'];
     $description = $_POST['description'];
     $status = "Open";
+    $priority = $_POST['priority'] ?? 'Normal';
     $job_id = (int)$_POST['job_id'];
 
     $vendor_id = !empty($_POST['vendor_id'])
@@ -51,6 +52,7 @@ if (isset($_POST['save'])) {
         complaint_type,
         description,
         status
+        priority
     )
     VALUES
     (
@@ -66,6 +68,7 @@ if (isset($_POST['save'])) {
         '$complaint_type',
         '$description',
         '$status'
+        '$priority'
     )";
 
     if (mysqli_query($conn, $sql)) {
@@ -178,6 +181,14 @@ if (isset($_POST['save'])) {
             <option value="Other">Other</option>
         </select>
 
+       <label class="form-label">Priority</label>
+
+       <select name="priority" class="form-control mb-3" required>
+       <option value="Normal">Normal</option>
+       <option value="Urgent">Urgent</option>
+       <option value="Most Urgent">Most Urgent</option>
+   </select>
+           
         <label class="form-label">Description</label>
         <textarea name="description" rows="4" class="form-control mb-3"></textarea>
 
