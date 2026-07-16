@@ -39,37 +39,37 @@ if (isset($_POST['save'])) {
         : 0;
 
     $sql = "INSERT INTO complaints
-    (
-        complaint_id,
-        job_id,
-        vendor_id,
-        complaint_date,
-        tracking_number,
-        secondary_tracking_number,
-        customer_name,
-        mobile,
-        address,
-        complaint_type,
-        description,
-        status
-        priority
-    )
-    VALUES
-    (
-        '$complaint_id',
-        '$job_id',
-        '$vendor_id',
-        '$complaint_date',
-        '$tracking_number',
-        '$secondary_tracking_number',
-        '$customer_name',
-        '$mobile',
-        '$address',
-        '$complaint_type',
-        '$description',
-        '$status'
-        '$priority'
-    )";
+(
+    complaint_id,
+    job_id,
+    vendor_id,
+    complaint_date,
+    tracking_number,
+    secondary_tracking_number,
+    customer_name,
+    mobile,
+    address,
+    complaint_type,
+    description,
+    status,
+    priority
+)
+VALUES
+(
+    '$complaint_id',
+    '$job_id',
+    '$vendor_id',
+    '$complaint_date',
+    '$tracking_number',
+    '$secondary_tracking_number',
+    '$customer_name',
+    '$mobile',
+    '$address',
+    '$complaint_type',
+    '$description',
+    '$status',
+    '$priority'
+)";
 
     if (mysqli_query($conn, $sql)) {
 
