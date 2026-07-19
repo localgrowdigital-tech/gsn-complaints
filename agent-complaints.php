@@ -795,8 +795,13 @@ if ($materialFilter) {
                                     <?php endif; ?>
                                 </td>
 
-                                <td class="fw-semibold text-primary">
-                                    <?php echo e($row['complaint_id']); ?>
+                                <td class="fw-semibold">
+                                    <a
+                                        href="agent-complaint-details.php?id=<?php echo (int) $row['id']; ?>"
+                                        class="text-primary text-decoration-none"
+                                    >
+                                        <?php echo e($row['complaint_id']); ?>
+                                    </a>
                                 </td>
 
                                 <td><?php echo e(date('d M Y', strtotime($row['complaint_date']))); ?></td>
