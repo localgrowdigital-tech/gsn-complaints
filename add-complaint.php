@@ -33,6 +33,11 @@ if (isset($_POST['save'])) {
     $status = "Open";
     $priority = $_POST['priority'] ?? 'Normal';
     $job_id = (int)$_POST['job_id'];
+    $allowedPriorities = ['Normal', 'Urgent', 'Most Urgent'];
+
+if (!in_array($priority, $allowedPriorities, true)) {
+    $priority = 'Normal';
+}
 
     $vendor_id = !empty($_POST['vendor_id'])
         ? (int)$_POST['vendor_id']
