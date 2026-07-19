@@ -13,6 +13,7 @@ $success = '';
 $error = '';
 $createdComplaintId = '';
 $createdComplaintDbId = 0;
+$duplicateComplaint = null;
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -70,6 +71,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $complaintDate)) {
         $error = 'Invalid complaint date.';
     } else {
+        /*
+        |--------------------------------------------------------------------------
+        | Server-side duplicate protection
+        |--------------------------------------------------------------------------
+        | An active complaint with the same tracking number cannot be created.
+        | This check runs again on submit even if JavaScript is bypassed.
+        */
+        $duplicateSql = "
+            SELECT
+                c.id,
+                c.complaint_id,
+                c.customer_name,
+                c.status,
+                c.complaint_date,
+                j.job_name,
+                v.vendor_name
+            FROM complaints c
+            INNER JOIN agent_jobs aj
+                ON aj.job_id = c.job_id
+               AND aj.agent_id = ?
+            LEFT JOIN jobs j ON j.id = c.job_id
+            LEFT JOIN vendors v ON v.id = c.vendor_id
+            WHERE TRIM(c.tracking_number) = ?
+              AND c.status IN ('Open', 'In Progress')
+            ORDER BY c.id DESC
+            LIMIT 1
+        ";
+
+        $duplicateStmt = mysqli_prepare($conn, $duplicateSql);
+
+        if (!$duplicateStmt) {
+            $error = 'Unable to check tracking number. Please try again.';
+        } else {
+            mysqli_stmt_bind_param($duplicateStmt, 'is', $agentId, $trackingNumber);
+            mysqli_stmt_execute($duplicateStmt);
+            $duplicateResult = mysqli_stmt_get_result($duplicateStmt);
+            $duplicateComplaint = mysqli_fetch_assoc($duplicateResult) ?: null;
+            mysqli_stmt_close($duplicateStmt);
+
+            if ($duplicateComplaint) {
+                $error = 'An active complaint already exists for this tracking number. Please open the existing complaint.';
+            }
+        }
+
+        if ($error === '') {
         $jobCheckSql = "
             SELECT j.id
             FROM jobs j
@@ -221,6 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             }
+        }
         }
     }
 }
@@ -606,6 +653,35 @@ $vendorsResult = mysqli_query(
                             placeholder="Enter tracking number"
                             value="<?php echo e($_POST['tracking_number'] ?? ''); ?>"
                         >
+
+                        <div id="trackingCheckStatus" class="mt-2 small text-muted">
+                            Enter a tracking number to check existing active complaints.
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div id="duplicateComplaintBox" class="alert alert-danger d-none mb-0" role="alert">
+                            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                                <div>
+                                    <div class="fw-bold mb-2">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                        Existing Active Complaint Found
+                                    </div>
+                                    <div class="row g-2 small">
+                                        <div class="col-md-4"><strong>Complaint ID:</strong> <span id="duplicateComplaintId">—</span></div>
+                                        <div class="col-md-4"><strong>Customer:</strong> <span id="duplicateCustomer">—</span></div>
+                                        <div class="col-md-4"><strong>Status:</strong> <span id="duplicateStatus">—</span></div>
+                                        <div class="col-md-4"><strong>Date:</strong> <span id="duplicateDate">—</span></div>
+                                        <div class="col-md-4"><strong>Job:</strong> <span id="duplicateJob">—</span></div>
+                                        <div class="col-md-4"><strong>Vendor:</strong> <span id="duplicateVendor">—</span></div>
+                                    </div>
+                                </div>
+
+                                <a id="duplicateViewButton" href="#" class="btn btn-danger flex-shrink-0">
+                                    <i class="bi bi-eye me-1"></i> View Existing Complaint
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-lg-4">
@@ -705,7 +781,7 @@ $vendorsResult = mysqli_query(
                     </div>
 
                     <div class="d-flex flex-wrap gap-2">
-                        <button type="reset" class="btn btn-outline-secondary px-4">
+                        <button type="reset" id="resetComplaintForm" class="btn btn-outline-secondary px-4">
                             Reset
                         </button>
 
@@ -713,7 +789,7 @@ $vendorsResult = mysqli_query(
                             My Complaints
                         </a>
 
-                        <button type="submit" class="btn btn-primary px-5 fw-semibold">
+                        <button type="submit" id="submitComplaintButton" class="btn btn-primary px-5 fw-semibold">
                             <i class="bi bi-plus-circle me-1"></i>
                             Submit Complaint
                         </button>
@@ -729,6 +805,122 @@ $vendorsResult = mysqli_query(
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+const trackingInput = document.getElementById('tracking_number');
+const trackingStatus = document.getElementById('trackingCheckStatus');
+const duplicateBox = document.getElementById('duplicateComplaintBox');
+const submitButton = document.getElementById('submitComplaintButton');
+const resetButton = document.getElementById('resetComplaintForm');
+
+let trackingCheckTimer = null;
+let trackingCheckController = null;
+let lastCheckedTracking = '';
+
+function hideDuplicateComplaint() {
+    duplicateBox.classList.add('d-none');
+    submitButton.disabled = false;
+    submitButton.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Submit Complaint';
+}
+
+function showDuplicateComplaint(complaint) {
+    document.getElementById('duplicateComplaintId').textContent = complaint.complaint_id || '—';
+    document.getElementById('duplicateCustomer').textContent = complaint.customer_name || '—';
+    document.getElementById('duplicateStatus').textContent = complaint.status || '—';
+    document.getElementById('duplicateDate').textContent = complaint.complaint_date_formatted || complaint.complaint_date || '—';
+    document.getElementById('duplicateJob').textContent = complaint.job_name || 'No Job';
+    document.getElementById('duplicateVendor').textContent = complaint.vendor_name || 'No Vendor';
+    document.getElementById('duplicateViewButton').href =
+        'agent-complaint-details.php?id=' + encodeURIComponent(complaint.id);
+
+    duplicateBox.classList.remove('d-none');
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="bi bi-lock-fill me-1"></i> Duplicate Blocked';
+}
+
+async function checkTrackingNumber() {
+    const trackingNumber = trackingInput.value.trim();
+
+    if (trackingNumber.length < 3) {
+        lastCheckedTracking = '';
+        hideDuplicateComplaint();
+        trackingStatus.className = 'mt-2 small text-muted';
+        trackingStatus.textContent = 'Enter at least 3 characters to check existing complaints.';
+        return;
+    }
+
+    if (trackingNumber === lastCheckedTracking) {
+        return;
+    }
+
+    if (trackingCheckController) {
+        trackingCheckController.abort();
+    }
+
+    trackingCheckController = new AbortController();
+    trackingStatus.className = 'mt-2 small text-primary';
+    trackingStatus.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Checking tracking number...';
+
+    try {
+        const response = await fetch(
+            'check-tracking.php?tracking_number=' + encodeURIComponent(trackingNumber),
+            {
+                method: 'GET',
+                headers: {'Accept': 'application/json'},
+                signal: trackingCheckController.signal,
+                cache: 'no-store'
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || data.ok !== true) {
+            throw new Error(data.message || 'Unable to check tracking number.');
+        }
+
+        lastCheckedTracking = trackingNumber;
+
+        if (data.exists && data.complaint) {
+            showDuplicateComplaint(data.complaint);
+            trackingStatus.className = 'mt-2 small text-danger fw-semibold';
+            trackingStatus.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i> Active complaint already exists.';
+        } else {
+            hideDuplicateComplaint();
+            trackingStatus.className = 'mt-2 small text-success fw-semibold';
+            trackingStatus.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> No active complaint found.';
+        }
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
+
+        lastCheckedTracking = '';
+        hideDuplicateComplaint();
+        trackingStatus.className = 'mt-2 small text-warning fw-semibold';
+        trackingStatus.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i> Could not check now. The system will check again on submit.';
+    }
+}
+
+trackingInput.addEventListener('input', function () {
+    clearTimeout(trackingCheckTimer);
+    lastCheckedTracking = '';
+    hideDuplicateComplaint();
+
+    trackingStatus.className = 'mt-2 small text-muted';
+    trackingStatus.textContent = 'Waiting for tracking number...';
+
+    trackingCheckTimer = setTimeout(checkTrackingNumber, 600);
+});
+
+trackingInput.addEventListener('blur', checkTrackingNumber);
+
+resetButton.addEventListener('click', function () {
+    setTimeout(function () {
+        lastCheckedTracking = '';
+        hideDuplicateComplaint();
+        trackingStatus.className = 'mt-2 small text-muted';
+        trackingStatus.textContent = 'Enter a tracking number to check existing active complaints.';
+    }, 0);
+});
+
 document.getElementById('mobile').addEventListener('input', function () {
     this.value = this.value.replace(/[^0-9+\-\s]/g, '');
 });
