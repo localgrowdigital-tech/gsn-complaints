@@ -189,143 +189,27 @@ if (!isset($error)) {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php
+$pageTitle = 'Add Complaint - GSN';
+$pageHeading = 'Add Complaint';
 
-    <title>Add Complaint - GSN</title>
+include 'includes/header.php';
+include 'includes/sidebar.php';
+?>
 
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
+<div class="page-card">
 
-    <style>
-        body {
-            background: #f4f7fb;
-            font-family: Arial, sans-serif;
-        }
-
-        .page-wrapper {
-            max-width: 1100px;
-            margin: 40px auto;
-        }
-
-        .page-header {
-            background: linear-gradient(135deg, #0d6efd, #084298);
-            color: white;
-            border-radius: 18px;
-            padding: 28px;
-            box-shadow: 0 12px 30px rgba(13, 110, 253, 0.18);
-            margin-bottom: 24px;
-        }
-
-        .page-header h2 {
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .page-header p {
-            margin: 0;
-            opacity: 0.9;
-        }
-
-        .form-card {
-            background: white;
-            border: none;
-            border-radius: 18px;
-            padding: 30px;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.07);
-        }
-
-        .section-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #0d6efd;
-            margin-bottom: 18px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: #344054;
-            margin-bottom: 7px;
-        }
-
-        .form-control,
-        .form-select {
-            min-height: 48px;
-            border-radius: 10px;
-            border: 1px solid #dce2ea;
-        }
-
-        textarea.form-control {
-            min-height: auto;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.10);
-        }
-
-        .btn-back {
-            border-radius: 10px;
-            padding: 10px 18px;
-        }
-
-        .btn-save {
-            min-height: 50px;
-            border-radius: 10px;
-            font-weight: 700;
-            padding-left: 30px;
-            padding-right: 30px;
-        }
-
-        .required {
-            color: #dc3545;
-        }
-
-        .alert {
-            border-radius: 12px;
-        }
-
-        @media (max-width: 768px) {
-            .page-wrapper {
-                margin: 20px auto;
-            }
-
-            .page-header,
-            .form-card {
-                border-radius: 14px;
-            }
-
-            .form-card {
-                padding: 20px;
-            }
-
-            .btn-save {
-                width: 100%;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="container page-wrapper">
-
-    <div class="page-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
 
         <div>
-            <h2>GRAND SPEED NETWORK</h2>
-            <p>Create and register a new complaint</p>
+            <h4 class="mb-1">Create New Complaint</h4>
+            <p class="text-muted mb-0">
+                Enter complaint and customer information
+            </p>
         </div>
 
-        <a href="dashboard.php" class="btn btn-light btn-back">
+        <a href="dashboard.php" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
             Back to Dashboard
         </a>
 
@@ -333,60 +217,54 @@ if (!isset($error)) {
 
     <?php if (isset($success)) { ?>
         <div class="alert alert-success">
-            <?php echo htmlspecialchars($success); ?>
+            <?php echo htmlspecialchars($success, ENT_QUOTES, 'UTF-8'); ?>
         </div>
     <?php } ?>
 
     <?php if (isset($error)) { ?>
         <div class="alert alert-danger">
-            <?php echo htmlspecialchars($error); ?>
+            <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
         </div>
     <?php } ?>
 
-    <form method="POST" class="form-card">
+    <form method="POST">
 
-        <div class="section-title">
+        <h6 class="text-primary fw-bold border-bottom pb-2 mb-3">
             Complaint Information
-        </div>
+        </h6>
 
         <div class="row">
 
-            <div class="col-md-4 mb-3">
-                <label class="form-label">
-                    Job <span class="required">*</span>
-                </label>
+            <div class="col-lg-4 col-md-6 mb-3">
+                <label class="form-label fw-semibold">Job *</label>
 
                 <select name="job_id" class="form-select" required>
                     <option value="">Select Job</option>
 
                     <?php while ($job = mysqli_fetch_assoc($jobs)) { ?>
                         <option value="<?php echo (int)$job['id']; ?>">
-                            <?php echo htmlspecialchars($job['job_name']); ?>
+                            <?php echo htmlspecialchars($job['job_name'], ENT_QUOTES, 'UTF-8'); ?>
                         </option>
                     <?php } ?>
                 </select>
             </div>
 
-            <div class="col-md-4 mb-3">
-                <label class="form-label">
-                    Vendor
-                </label>
+            <div class="col-lg-4 col-md-6 mb-3">
+                <label class="form-label fw-semibold">Vendor</label>
 
                 <select name="vendor_id" class="form-select">
                     <option value="">Select Vendor</option>
 
                     <?php while ($vendor = mysqli_fetch_assoc($vendors)) { ?>
                         <option value="<?php echo (int)$vendor['id']; ?>">
-                            <?php echo htmlspecialchars($vendor['vendor_name']); ?>
+                            <?php echo htmlspecialchars($vendor['vendor_name'], ENT_QUOTES, 'UTF-8'); ?>
                         </option>
                     <?php } ?>
                 </select>
             </div>
 
-            <div class="col-md-4 mb-3">
-                <label class="form-label">
-                    Complaint Date <span class="required">*</span>
-                </label>
+            <div class="col-lg-4 col-md-6 mb-3">
+                <label class="form-label fw-semibold">Complaint Date *</label>
 
                 <input
                     type="date"
@@ -401,9 +279,7 @@ if (!isset($error)) {
         <div class="row">
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">
-                    Tracking Number <span class="required">*</span>
-                </label>
+                <label class="form-label fw-semibold">Tracking Number *</label>
 
                 <input
                     type="text"
@@ -415,7 +291,7 @@ if (!isset($error)) {
             </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">
+                <label class="form-label fw-semibold">
                     Secondary Tracking Number
                 </label>
 
@@ -429,16 +305,14 @@ if (!isset($error)) {
 
         </div>
 
-        <div class="section-title mt-3">
-            Customer Details
-        </div>
+        <h6 class="text-primary fw-bold border-bottom pb-2 mt-3 mb-3">
+            Customer Information
+        </h6>
 
         <div class="row">
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">
-                    Customer Name <span class="required">*</span>
-                </label>
+                <label class="form-label fw-semibold">Customer Name *</label>
 
                 <input
                     type="text"
@@ -450,9 +324,7 @@ if (!isset($error)) {
             </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">
-                    Mobile Number <span class="required">*</span>
-                </label>
+                <label class="form-label fw-semibold">Mobile Number *</label>
 
                 <input
                     type="text"
@@ -466,7 +338,7 @@ if (!isset($error)) {
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Address</label>
+            <label class="form-label fw-semibold">Address</label>
 
             <textarea
                 name="address"
@@ -476,16 +348,14 @@ if (!isset($error)) {
             ></textarea>
         </div>
 
-        <div class="section-title mt-3">
+        <h6 class="text-primary fw-bold border-bottom pb-2 mt-3 mb-3">
             Complaint Details
-        </div>
+        </h6>
 
         <div class="row">
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">
-                    Complaint Type <span class="required">*</span>
-                </label>
+                <label class="form-label fw-semibold">Complaint Type *</label>
 
                 <select name="complaint_type" class="form-select" required>
                     <option value="">Select Type</option>
@@ -499,9 +369,7 @@ if (!isset($error)) {
             </div>
 
             <div class="col-md-6 mb-3">
-                <label class="form-label">
-                    Priority <span class="required">*</span>
-                </label>
+                <label class="form-label fw-semibold">Priority *</label>
 
                 <select name="priority" class="form-select" required>
                     <option value="Normal">Normal</option>
@@ -513,7 +381,7 @@ if (!isset($error)) {
         </div>
 
         <div class="mb-4">
-            <label class="form-label">Description</label>
+            <label class="form-label fw-semibold">Description</label>
 
             <textarea
                 name="description"
@@ -524,18 +392,20 @@ if (!isset($error)) {
         </div>
 
         <div class="d-flex justify-content-end">
+
             <button
                 type="submit"
                 name="save"
-                class="btn btn-primary btn-save"
+                class="btn btn-primary px-4 py-2"
             >
+                <i class="bi bi-check-circle"></i>
                 Save Complaint
             </button>
+
         </div>
 
     </form>
 
 </div>
 
-</body>
-</html>
+<?php include 'includes/footer.php'; ?>
