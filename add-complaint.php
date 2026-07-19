@@ -39,77 +39,76 @@ if (isset($_POST['save'])) {
         : 0;
 
     $stmt = mysqli_prepare(
-    $conn,
-    "INSERT INTO complaints
-    (
-        complaint_id,
-        job_id,
-        vendor_id,
-        complaint_date,
-        tracking_number,
-        secondary_tracking_number,
-        customer_name,
-        mobile,
-        address,
-        complaint_type,
-        description,
-        status,
-        priority
-    )
-    VALUES
-    (
-        ?,?,?,?,?,?,?,?,?,?,?,?,?
-    )"
-);
-
-if (!$stmt) {
-
-    $error = "Database Prepare Error.";
-
-} else {
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        "siissssssssss",
-        $complaint_id,
-        $job_id,
-        $vendor_id,
-        $complaint_date,
-        $tracking_number,
-        $secondary_tracking_number,
-        $customer_name,
-        $mobile,
-        $address,
-        $complaint_type,
-        $description,
-        $status,
-        $priority
+        $conn,
+        "INSERT INTO complaints
+        (
+            complaint_id,
+            job_id,
+            vendor_id,
+            complaint_date,
+            tracking_number,
+            secondary_tracking_number,
+            customer_name,
+            mobile,
+            address,
+            complaint_type,
+            description,
+            status,
+            priority
+        )
+        VALUES
+        (
+            ?,?,?,?,?,?,?,?,?,?,?,?,?
+        )"
     );
 
-    if (mysqli_stmt_execute($stmt)) {
+    if (!$stmt) {
 
-        $newComplaintId = mysqli_insert_id($conn);
-
-        addTimeline(
-            $conn,
-            $newComplaintId,
-            'Complaint Created',
-            'Complaint ID: ' . $complaint_id,
-            'Admin',
-            $_SESSION['admin'] ?? 'Admin'
-        );
-
-        $success =
-            "Complaint Added Successfully. Complaint ID: "
-            . $complaint_id;
+        $error = "Database Prepare Error.";
 
     } else {
 
-        $error = "Unable to save complaint.";
+        mysqli_stmt_bind_param(
+            $stmt,
+            "siissssssssss",
+            $complaint_id,
+            $job_id,
+            $vendor_id,
+            $complaint_date,
+            $tracking_number,
+            $secondary_tracking_number,
+            $customer_name,
+            $mobile,
+            $address,
+            $complaint_type,
+            $description,
+            $status,
+            $priority
+        );
 
+        if (mysqli_stmt_execute($stmt)) {
+
+            $newComplaintId = mysqli_insert_id($conn);
+
+            addTimeline(
+                $conn,
+                $newComplaintId,
+                'Complaint Created',
+                'Complaint ID: ' . $complaint_id,
+                'Admin',
+                $_SESSION['admin'] ?? 'Admin'
+            );
+
+            $success = "Complaint Added Successfully. Complaint ID: " . $complaint_id;
+
+        } else {
+
+            $error = "Unable to save complaint.";
+
+        }
+
+        mysqli_stmt_close($stmt);
     }
-
-    mysqli_stmt_close($stmt);
 
 }
 ?>
