@@ -1,14 +1,11 @@
 <?php
 session_start();
 require_once 'db.php';
+require_once 'includes/timeline.php';
 
 if (!isset($_SESSION['admin'])) {
     header('Location: index.php');
     exit;
-}
-
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 function e($value)
@@ -16,497 +13,432 @@ function e($value)
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-$allowed_statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
-$success = '';
-$error = '';
-
-if (isset($_POST['update'])) {
-    $csrf = $_POST['csrf_token'] ?? '';
-
-    if (!hash_equals($_SESSION['csrf_token'], $csrf)) {
-        $error = 'Invalid request. Please refresh the page and try again.';
-    } else {
-        $id = (int)($_POST['id'] ?? 0);
-        $status = trim($_POST['status'] ?? '');
-        $closing_date = trim($_POST['closing_date'] ?? '');
-        $secondary_tracking_number = trim($_POST['secondary_tracking_number'] ?? '');
-        $vendor_id = !empty($_POST['vendor_id']) ? (int)$_POST['vendor_id'] : 0;
-
-        if ($id <= 0 || !in_array($status, $allowed_statuses, true)) {
-            $error = 'Please select a valid complaint and status.';
-        } else {
-            $closing_date_value = $closing_date !== '' ? $closing_date : null;
-
-            $stmt = mysqli_prepare($conn, "
-                UPDATE complaints
-                SET status = ?,
-                    closing_date = ?,
-                    secondary_tracking_number = ?,
-                    vendor_id = ?
-                WHERE id = ?
-            ");
-
-            if ($stmt) {
-                mysqli_stmt_bind_param(
-                    $stmt,
-                    'sssii',
-                    $status,
-                    $closing_date_value,
-                    $secondary_tracking_number,
-                    $vendor_id,
-                    $id
-                );
-
-                if (mysqli_stmt_execute($stmt)) {
-                    $success = 'Complaint updated successfully.';
-                } else {
-                    $error = 'Complaint could not be updated.';
-                }
-
-                mysqli_stmt_close($stmt);
-            } else {
-                $error = 'Database request could not be prepared.';
-            }
-        }
-    }
+function status_badge_class($status)
+{
+    return match ($status) {
+        'Open' => 'text-bg-primary',
+        'In Progress' => 'text-bg-warning',
+        'Resolved' => 'text-bg-success',
+        'Closed' => 'text-bg-secondary',
+        default => 'text-bg-light',
+    };
 }
 
-$vendor_options = [];
-$vendors_result = mysqli_query($conn, "
-    SELECT id, vendor_name
-    FROM vendors
-    WHERE status = 'Active'
-    ORDER BY vendor_name ASC
-");
-
-if ($vendors_result) {
-    while ($vendor = mysqli_fetch_assoc($vendors_result)) {
-        $vendor_options[] = $vendor;
-    }
+function priority_badge_class($priority)
+{
+    return match ($priority) {
+        'Most Urgent' => 'text-bg-danger',
+        'Urgent' => 'text-bg-warning',
+        default => 'text-bg-secondary',
+    };
 }
 
-$job_options = [];
-$jobs_result = mysqli_query($conn, "SELECT id, job_name FROM jobs ORDER BY job_name ASC");
-if ($jobs_result) {
-    while ($job_row = mysqli_fetch_assoc($jobs_result)) {
-        $job_options[] = $job_row;
-    }
-}
-
-$search = trim($_GET['search'] ?? '');
-$filter = trim($_GET['status'] ?? '');
-$job = (int)($_GET['job'] ?? 0);
-$priority = trim($_GET['priority'] ?? '');
-$today = ($_GET['today'] ?? '') === '1';
-$old = ($_GET['old'] ?? '') === '1';
-$month = trim($_GET['month'] ?? '');
-
-$where_parts = ['1=1'];
-
-if ($job > 0) {
-    $where_parts[] = 'complaints.job_id = ' . $job;
-}
-
-if ($search !== '') {
-    $safe_search = mysqli_real_escape_string($conn, $search);
-    $where_parts[] = "(
-        complaint_id LIKE '%{$safe_search}%' OR
-        tracking_number LIKE '%{$safe_search}%' OR
-        secondary_tracking_number LIKE '%{$safe_search}%' OR
-        customer_name LIKE '%{$safe_search}%' OR
-        mobile LIKE '%{$safe_search}%'
-    )";
-}
-
-if ($filter !== '' && $filter !== 'All' && in_array($filter, $allowed_statuses, true)) {
-    $safe_filter = mysqli_real_escape_string($conn, $filter);
-    $where_parts[] = "complaints.status = '{$safe_filter}'";
-}
-
-if ($priority !== '') {
-    $safe_priority = mysqli_real_escape_string($conn, $priority);
-    $where_parts[] = "complaints.priority = '{$safe_priority}'";
-}
-
-if ($today) {
-    $where_parts[] = 'DATE(complaints.complaint_date) = CURDATE()';
-}
-
-if ($old) {
-    $where_parts[] = "complaints.status IN ('Open', 'In Progress')";
-    $where_parts[] = 'DATEDIFF(CURDATE(), complaints.complaint_date) >= 4';
-}
-
-if ($month === 'current') {
-    $where_parts[] = 'YEAR(complaints.complaint_date) = YEAR(CURDATE())';
-    $where_parts[] = 'MONTH(complaints.complaint_date) = MONTH(CURDATE())';
-}
-
-$where = 'WHERE ' . implode(' AND ', $where_parts);
-
-if (isset($_GET['export'])) {
-    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
-    header('Content-Disposition: attachment; filename=complaints.xls');
-
-    echo "ID\tComplaint ID\tDate\tJob\tVendor\tTracking\tSecondary Tracking\tCustomer\tMobile\tStatus\tClosing Date\n";
-
-    $export = mysqli_query($conn, "
-        SELECT complaints.*, jobs.job_name, vendors.vendor_name
-        FROM complaints
-        LEFT JOIN jobs ON complaints.job_id = jobs.id
-        LEFT JOIN vendors ON complaints.vendor_id = vendors.id
-        {$where}
-        ORDER BY complaints.id DESC
-    ");
-
-    if ($export) {
-        while ($row = mysqli_fetch_assoc($export)) {
-            $values = [
-                $row['id'],
-                $row['complaint_id'],
-                $row['complaint_date'],
-                $row['job_name'],
-                $row['vendor_name'] ?: 'No Vendor',
-                $row['tracking_number'],
-                $row['secondary_tracking_number'],
-                $row['customer_name'],
-                $row['mobile'],
-                $row['status'],
-                $row['closing_date'],
-            ];
-
-            $values = array_map(static function ($value) {
-                return str_replace(["\t", "\r", "\n"], ' ', (string)$value);
-            }, $values);
-
-            echo implode("\t", $values) . "\n";
-        }
+function display_date($value, $with_time = false)
+{
+    if (empty($value) || $value === '0000-00-00' || $value === '0000-00-00 00:00:00') {
+        return '—';
     }
 
+    $timestamp = strtotime($value);
+    if (!$timestamp) {
+        return e($value);
+    }
+
+    return date($with_time ? 'd M Y, h:i A' : 'd M Y', $timestamp);
+}
+
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+
+if (!$id || $id <= 0) {
+    header('Location: view-complaints.php');
     exit;
 }
 
-$result = mysqli_query($conn, "
-    SELECT
-        complaints.*,
-        jobs.job_name,
-        vendors.vendor_name,
-        CASE
-            WHEN complaints.status IN ('Closed', 'Resolved')
-                 AND complaints.closing_date IS NOT NULL
-            THEN DATEDIFF(complaints.closing_date, complaints.complaint_date)
-            ELSE DATEDIFF(CURDATE(), complaints.complaint_date)
-        END AS pending_days
-    FROM complaints
-    LEFT JOIN jobs ON complaints.job_id = jobs.id
-    LEFT JOIN vendors ON complaints.vendor_id = vendors.id
-    {$where}
-    ORDER BY complaints.id DESC
+$stmt = mysqli_prepare($conn, "
+    SELECT c.*, j.job_name, v.vendor_name,
+           CASE
+               WHEN c.status IN ('Closed', 'Resolved') AND c.closing_date IS NOT NULL
+               THEN DATEDIFF(c.closing_date, c.complaint_date)
+               ELSE DATEDIFF(CURDATE(), c.complaint_date)
+           END AS pending_days
+    FROM complaints c
+    LEFT JOIN jobs j ON j.id = c.job_id
+    LEFT JOIN vendors v ON v.id = c.vendor_id
+    WHERE c.id = ?
+    LIMIT 1
 ");
 
-$total_rows = $result ? mysqli_num_rows($result) : 0;
+if (!$stmt) {
+    die('Unable to load complaint.');
+}
 
-$query_params = [
-    'search' => $search,
-    'job' => $job ?: '',
-    'status' => $filter,
-    'priority' => $priority,
-    'today' => $today ? '1' : '',
-    'old' => $old ? '1' : '',
-    'month' => $month,
-];
-$export_url = 'view-complaints.php?' . http_build_query(array_filter($query_params, static fn($v) => $v !== '')) . '&export=1';
+mysqli_stmt_bind_param($stmt, 'i', $id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$complaint = $result ? mysqli_fetch_assoc($result) : null;
+mysqli_stmt_close($stmt);
 
-$pageTitle = 'Complaints';
-$pageHeading = 'Complaints';
+if (!$complaint) {
+    http_response_code(404);
+    die('Complaint not found.');
+}
+
+$remarks_stmt = mysqli_prepare($conn, "
+    SELECT id, status, remark, remark_date
+    FROM complaint_remarks
+    WHERE complaint_id = ?
+    ORDER BY id DESC
+");
+$remarks = null;
+if ($remarks_stmt) {
+    mysqli_stmt_bind_param($remarks_stmt, 'i', $id);
+    mysqli_stmt_execute($remarks_stmt);
+    $remarks = mysqli_stmt_get_result($remarks_stmt);
+}
+
+$timeline_stmt = mysqli_prepare($conn, "
+    SELECT action, details, user_type, user_name, created_at
+    FROM complaint_timeline
+    WHERE complaint_id = ?
+    ORDER BY created_at DESC
+");
+$timeline = null;
+if ($timeline_stmt) {
+    mysqli_stmt_bind_param($timeline_stmt, 'i', $id);
+    mysqli_stmt_execute($timeline_stmt);
+    $timeline = mysqli_stmt_get_result($timeline_stmt);
+}
+
+$pending_days = max(0, (int)($complaint['pending_days'] ?? 0));
+$back_url = 'view-complaints.php';
+if (!empty($_GET['back']) && is_string($_GET['back']) && str_starts_with($_GET['back'], '/')) {
+    $back_url = $_GET['back'];
+}
+
+$pageTitle = 'Complaint Details';
+$pageHeading = 'Complaint Details';
 include 'includes/header.php';
 include 'includes/sidebar.php';
 ?>
 
-<div class="content-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
-    <div>
-        <span class="page-eyebrow">GRAND SPEED NETWORK</span>
-        <h1 class="page-title mb-1">Complaint Management</h1>
-        <p class="page-subtitle mb-0">Search, filter, review and update all complaints.</p>
-    </div>
-
-    <a href="add-complaint.php" class="btn btn-primary px-4">
-        <i class="bi bi-plus-circle me-2"></i>Add Complaint
-    </a>
-</div>
-
-<?php if ($success !== ''): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i><?php echo e($success); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-<?php endif; ?>
-
-<?php if ($error !== ''): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i><?php echo e($error); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-<?php endif; ?>
-
-<section class="premium-card mb-4 no-print">
-    <div class="card-accent"></div>
-    <div class="p-4">
-        <form method="GET" class="row g-3 align-items-end">
-            <div class="col-12 col-xl-5">
-                <label class="form-label">Search Complaint</label>
-                <div class="input-group input-group-lg">
-                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                    <input
-                        type="text"
-                        name="search"
-                        class="form-control"
-                        placeholder="Complaint ID, tracking, customer or mobile"
-                        value="<?php echo e($search); ?>"
-                    >
-                </div>
-            </div>
-
-            <div class="col-12 col-md-4 col-xl-2">
-                <label class="form-label">Job</label>
-                <select name="job" class="form-select form-select-lg">
-                    <option value="">All Jobs</option>
-                    <?php foreach ($job_options as $job_row): ?>
-                        <option value="<?php echo (int)$job_row['id']; ?>" <?php echo $job === (int)$job_row['id'] ? 'selected' : ''; ?>>
-                            <?php echo e($job_row['job_name']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="col-12 col-md-4 col-xl-2">
-                <label class="form-label">Status</label>
-                <select name="status" class="form-select form-select-lg">
-                    <option value="All">All Status</option>
-                    <?php foreach ($allowed_statuses as $status_option): ?>
-                        <option value="<?php echo e($status_option); ?>" <?php echo $filter === $status_option ? 'selected' : ''; ?>>
-                            <?php echo e($status_option); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="col-12 col-md-4 col-xl-3">
-                <div class="d-grid d-sm-flex gap-2">
-                    <button class="btn btn-primary btn-lg flex-fill" type="submit">
-                        <i class="bi bi-funnel me-2"></i>Apply
-                    </button>
-                    <a href="view-complaints.php" class="btn btn-light btn-lg" title="Reset">
-                        <i class="bi bi-arrow-counterclockwise"></i>
-                    </a>
-                </div>
-            </div>
-        </form>
-    </div>
-</section>
-
-<section class="premium-card">
-    <div class="card-accent"></div>
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 p-4 border-bottom">
-        <div>
-            <h2 class="h5 fw-bold mb-1">All Complaints</h2>
-            <p class="text-muted mb-0"><?php echo $total_rows; ?> complaint(s) found</p>
-        </div>
-
-        <div class="d-flex flex-wrap gap-2 no-print">
-            <a href="<?php echo e($export_url); ?>" class="btn btn-success">
-                <i class="bi bi-file-earmark-excel me-2"></i>Excel
-            </a>
-            <button type="button" class="btn btn-dark" onclick="window.print();">
-                <i class="bi bi-printer me-2"></i>Print
-            </button>
-        </div>
-    </div>
-
-    <div class="table-responsive complaint-table-wrap">
-        <table class="table premium-table align-middle mb-0">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Complaint</th>
-                    <th>Date</th>
-                    <th>Job</th>
-                    <th>Vendor</th>
-                    <th>Tracking</th>
-                    <th>Customer</th>
-                    <th>Mobile</th>
-                    <th>Status</th>
-                    <th>Pending</th>
-                    <th>Secondary Tracking</th>
-                    <th>Closing Date</th>
-                    <th class="no-print">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php if ($result && mysqli_num_rows($result) > 0): ?>
-                <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                    <?php
-                    $days = max(0, (int)($row['pending_days'] ?? 0));
-                    $pending_class = 'success';
-                    if ($days >= 15) {
-                        $pending_class = 'danger';
-                    } elseif ($days >= 8) {
-                        $pending_class = 'warning';
-                    } elseif ($days >= 4) {
-                        $pending_class = 'info';
-                    }
-
-                    $status_class = match ($row['status']) {
-                        'Open' => 'status-open',
-                        'In Progress' => 'status-progress',
-                        'Resolved' => 'status-resolved',
-                        'Closed' => 'status-closed',
-                        default => 'status-default',
-                    };
-                    ?>
-                    <tr>
-                        <form method="POST">
-                            <td class="text-muted">#<?php echo (int)$row['id']; ?></td>
-                            <td>
-                                <a class="complaint-id-link" href="complaint-details.php?id=<?php echo (int)$row['id']; ?>">
-                                    <?php echo e($row['complaint_id'] ?: $row['id']); ?>
-                                </a>
-                            </td>
-                            <td><?php echo e($row['complaint_date']); ?></td>
-                            <td><?php echo e($row['job_name'] ?: 'No Job'); ?></td>
-                            <td style="min-width: 170px;">
-                                <select name="vendor_id" class="form-select form-select-sm">
-                                    <option value="0">No Vendor</option>
-                                    <?php foreach ($vendor_options as $vendor): ?>
-                                        <option value="<?php echo (int)$vendor['id']; ?>" <?php echo (int)($row['vendor_id'] ?? 0) === (int)$vendor['id'] ? 'selected' : ''; ?>>
-                                            <?php echo e($vendor['vendor_name']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                            <td class="fw-semibold"><?php echo e($row['tracking_number']); ?></td>
-                            <td><?php echo e($row['customer_name']); ?></td>
-                            <td><?php echo e($row['mobile']); ?></td>
-                            <td style="min-width: 155px;">
-                                <select name="status" class="form-select form-select-sm <?php echo e($status_class); ?>">
-                                    <?php foreach ($allowed_statuses as $status_option): ?>
-                                        <option value="<?php echo e($status_option); ?>" <?php echo $row['status'] === $status_option ? 'selected' : ''; ?>>
-                                            <?php echo e($status_option); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                            <td>
-                                <span class="pending-badge pending-<?php echo e($pending_class); ?>">
-                                    <?php echo $days; ?> Days
-                                </span>
-                            </td>
-                            <td style="min-width: 175px;">
-                                <input
-                                    type="text"
-                                    name="secondary_tracking_number"
-                                    class="form-control form-control-sm"
-                                    placeholder="Secondary tracking"
-                                    value="<?php echo e($row['secondary_tracking_number'] ?? ''); ?>"
-                                >
-                            </td>
-                            <td style="min-width: 155px;">
-                                <input
-                                    type="date"
-                                    name="closing_date"
-                                    class="form-control form-control-sm"
-                                    value="<?php echo e($row['closing_date']); ?>"
-                                >
-                            </td>
-                            <td class="no-print" style="min-width: 210px;">
-                                <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
-                                <input type="hidden" name="id" value="<?php echo (int)$row['id']; ?>">
-                                <div class="d-flex gap-2">
-                                    <a href="complaint-details.php?id=<?php echo (int)$row['id']; ?>" class="btn btn-light btn-sm" title="Details">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="remarks.php?id=<?php echo (int)$row['id']; ?>&back=<?php echo rawurlencode($_SERVER['REQUEST_URI']); ?>" class="btn btn-outline-primary btn-sm" title="Remarks">
-                                        <i class="bi bi-chat-left-text"></i>
-                                    </a>
-                                    <button type="submit" name="update" class="btn btn-primary btn-sm px-3">
-                                        Update
-                                    </button>
-                                </div>
-                            </td>
-                        </form>
-                    </tr>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="13" class="text-center py-5">
-                        <div class="empty-state-icon"><i class="bi bi-inbox"></i></div>
-                        <h3 class="h6 fw-bold mt-3">No complaints found</h3>
-                        <p class="text-muted mb-0">Try changing your search or filters.</p>
-                    </td>
-                </tr>
-            <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-</section>
-
 <style>
-.complaint-table-wrap { max-height: 72vh; }
-.premium-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: #f7f9fc;
-    color: #526079;
-    border-bottom: 1px solid #e5eaf2;
-    font-size: .75rem;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    padding: 1rem .9rem;
-}
-.premium-table tbody td {
-    padding: .85rem .9rem;
-    border-color: #edf1f6;
-    white-space: nowrap;
-}
-.premium-table tbody tr:hover { background: #f8fbff; }
-.complaint-id-link { color: #0b63f6; font-weight: 800; text-decoration: none; }
-.complaint-id-link:hover { text-decoration: underline; }
-.pending-badge {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: .38rem .65rem;
-    font-size: .75rem;
-    font-weight: 800;
-}
-.pending-success { background: #e7f8ef; color: #087443; }
-.pending-info { background: #e9f5ff; color: #075985; }
-.pending-warning { background: #fff5d9; color: #9a6700; }
-.pending-danger { background: #ffe8e8; color: #c91919; }
-.status-open { background-color: #fff6e3; border-color: #ffd88a; }
-.status-progress { background-color: #eaf3ff; border-color: #aacbff; }
-.status-resolved { background-color: #e9f9f0; border-color: #a8e3c1; }
-.status-closed { background-color: #f0f2f5; border-color: #cbd1d9; }
-.empty-state-icon {
-    width: 58px;
-    height: 58px;
-    margin: 0 auto;
-    display: grid;
-    place-items: center;
-    border-radius: 18px;
-    background: #edf4ff;
-    color: #0b63f6;
-    font-size: 1.5rem;
-}
-@media print {
-    .sidebar, .topbar, .content-header .btn, .no-print { display: none !important; }
-    .main-content { margin-left: 0 !important; }
-    .premium-card { box-shadow: none !important; border: 0 !important; }
-    .complaint-table-wrap { max-height: none; overflow: visible; }
-    .premium-table thead th { position: static; }
-}
+    .details-hero {
+        position: relative;
+        overflow: hidden;
+        border: 0;
+        border-radius: 24px;
+        color: #fff;
+        background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 58%, #2563eb 100%);
+        box-shadow: 0 22px 55px rgba(15, 23, 42, .18);
+    }
+    .details-hero::after {
+        content: "";
+        position: absolute;
+        width: 230px;
+        height: 230px;
+        right: -80px;
+        top: -100px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, .1);
+    }
+    .hero-stat {
+        padding: 15px 18px;
+        border: 1px solid rgba(255, 255, 255, .16);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, .09);
+        backdrop-filter: blur(8px);
+    }
+    .hero-stat-label {
+        display: block;
+        margin-bottom: 4px;
+        color: rgba(255, 255, 255, .7);
+        font-size: .74rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    .info-card,
+    .timeline-card {
+        border: 0;
+        border-radius: 20px;
+        box-shadow: 0 14px 34px rgba(15, 23, 42, .07);
+    }
+    .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+    .section-icon {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        color: #1d4ed8;
+        background: #eaf1ff;
+        font-size: 1.1rem;
+    }
+    .detail-item {
+        height: 100%;
+        padding: 16px 17px;
+        border: 1px solid #e8edf5;
+        border-radius: 15px;
+        background: #fbfcff;
+    }
+    .detail-label {
+        margin-bottom: 6px;
+        color: #748097;
+        font-size: .73rem;
+        font-weight: 800;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+    }
+    .detail-value {
+        color: #172033;
+        font-weight: 650;
+        overflow-wrap: anywhere;
+    }
+    .text-panel {
+        min-height: 150px;
+        padding: 20px;
+        border: 1px solid #e8edf5;
+        border-radius: 16px;
+        color: #334155;
+        background: #fbfcff;
+        line-height: 1.75;
+    }
+    .activity-item {
+        position: relative;
+        padding-left: 44px;
+        padding-bottom: 28px;
+    }
+    .activity-item:not(:last-child)::before {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: 32px;
+        bottom: -2px;
+        width: 2px;
+        background: #dbe5f3;
+    }
+    .activity-dot {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: #fff;
+        background: #2563eb;
+        box-shadow: 0 0 0 6px #edf4ff;
+    }
+    .activity-box {
+        padding: 17px 18px;
+        border: 1px solid #e5ebf4;
+        border-radius: 16px;
+        background: #fff;
+    }
+    .empty-state {
+        padding: 44px 20px;
+        text-align: center;
+        color: #7c879b;
+    }
+    @media print {
+        .no-print,
+        .sidebar,
+        .topbar,
+        .mobile-overlay { display: none !important; }
+        .main-content { margin-left: 0 !important; padding: 0 !important; }
+        .details-hero { color: #111827 !important; background: #fff !important; box-shadow: none; border: 1px solid #dbe2ea; }
+        .hero-stat { border-color: #dbe2ea; background: #fff; }
+        .hero-stat-label { color: #64748b; }
+        .info-card, .timeline-card { box-shadow: none; border: 1px solid #dbe2ea; break-inside: avoid; }
+    }
 </style>
 
-<?php include 'includes/footer.php'; ?>
+<div class="content-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 no-print">
+    <div>
+        <span class="page-eyebrow">GRAND SPEED NETWORK</span>
+        <h1 class="page-title mb-1">Complaint Details</h1>
+        <p class="page-subtitle mb-0">Full complaint information, remarks and activity timeline.</p>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+        <a href="<?php echo e($back_url); ?>" class="btn btn-light px-3">
+            <i class="bi bi-arrow-left me-2"></i>Back
+        </a>
+        <a href="remarks.php?id=<?php echo (int)$complaint['id']; ?>&back=<?php echo rawurlencode($_SERVER['REQUEST_URI']); ?>" class="btn btn-primary px-3">
+            <i class="bi bi-chat-left-text me-2"></i>Add Remark
+        </a>
+        <button type="button" onclick="window.print()" class="btn btn-dark px-3">
+            <i class="bi bi-printer me-2"></i>Print
+        </button>
+    </div>
+</div>
+
+<section class="details-hero mb-4">
+    <div class="position-relative p-4 p-xl-5" style="z-index:1;">
+        <div class="d-flex flex-column flex-xl-row justify-content-between gap-4">
+            <div>
+                <div class="text-uppercase fw-bold small opacity-75 mb-2">Complaint Reference</div>
+                <h2 class="display-6 fw-bold mb-3"><?php echo e($complaint['complaint_id'] ?: ('#' . $complaint['id'])); ?></h2>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge rounded-pill <?php echo status_badge_class($complaint['status']); ?> px-3 py-2">
+                        <?php echo e($complaint['status']); ?>
+                    </span>
+                    <span class="badge rounded-pill <?php echo priority_badge_class($complaint['priority'] ?? 'Normal'); ?> px-3 py-2">
+                        <?php echo e($complaint['priority'] ?? 'Normal'); ?>
+                    </span>
+                </div>
+            </div>
+
+            <div class="row g-2 flex-grow-1" style="max-width:680px;">
+                <div class="col-12 col-sm-4">
+                    <div class="hero-stat h-100">
+                        <span class="hero-stat-label">Complaint Date</span>
+                        <strong><?php echo display_date($complaint['complaint_date']); ?></strong>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-4">
+                    <div class="hero-stat h-100">
+                        <span class="hero-stat-label">Closing Date</span>
+                        <strong><?php echo display_date($complaint['closing_date']); ?></strong>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-4">
+                    <div class="hero-stat h-100">
+                        <span class="hero-stat-label">Pending Days</span>
+                        <strong><?php echo $pending_days; ?> Day<?php echo $pending_days === 1 ? '' : 's'; ?></strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-6">
+        <section class="card info-card h-100">
+            <div class="card-body p-4">
+                <div class="section-heading">
+                    <span class="section-icon"><i class="bi bi-box-seam"></i></span>
+                    <div><h3 class="h5 fw-bold mb-1">Shipment Information</h3><div class="text-muted small">Complaint and courier reference details</div></div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-sm-6"><div class="detail-item"><div class="detail-label">Complaint ID</div><div class="detail-value"><?php echo e($complaint['complaint_id']); ?></div></div></div>
+                    <div class="col-sm-6"><div class="detail-item"><div class="detail-label">Complaint Type</div><div class="detail-value"><?php echo e($complaint['complaint_type'] ?: '—'); ?></div></div></div>
+                    <div class="col-12"><div class="detail-item"><div class="detail-label">Tracking Number</div><div class="detail-value"><?php echo e($complaint['tracking_number'] ?: '—'); ?></div></div></div>
+                    <div class="col-12"><div class="detail-item"><div class="detail-label">Secondary Tracking</div><div class="detail-value"><?php echo e($complaint['secondary_tracking_number'] ?: '—'); ?></div></div></div>
+                    <div class="col-sm-6"><div class="detail-item"><div class="detail-label">Job</div><div class="detail-value"><?php echo e($complaint['job_name'] ?: 'No Job'); ?></div></div></div>
+                    <div class="col-sm-6"><div class="detail-item"><div class="detail-label">Vendor</div><div class="detail-value"><?php echo e($complaint['vendor_name'] ?: 'No Vendor'); ?></div></div></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-xl-6">
+        <section class="card info-card h-100">
+            <div class="card-body p-4">
+                <div class="section-heading">
+                    <span class="section-icon"><i class="bi bi-person-vcard"></i></span>
+                    <div><h3 class="h5 fw-bold mb-1">Customer Information</h3><div class="text-muted small">Customer contact and complaint status</div></div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-sm-6"><div class="detail-item"><div class="detail-label">Customer Name</div><div class="detail-value"><?php echo e($complaint['customer_name'] ?: '—'); ?></div></div></div>
+                    <div class="col-sm-6"><div class="detail-item"><div class="detail-label">Mobile</div><div class="detail-value"><?php echo e($complaint['mobile'] ?: '—'); ?></div></div></div>
+                    <div class="col-sm-6"><div class="detail-item"><div class="detail-label">Status</div><div class="detail-value"><span class="badge <?php echo status_badge_class($complaint['status']); ?>"><?php echo e($complaint['status']); ?></span></div></div></div>
+                    <div class="col-sm-6"><div class="detail-item"><div class="detail-label">Priority</div><div class="detail-value"><span class="badge <?php echo priority_badge_class($complaint['priority'] ?? 'Normal'); ?>"><?php echo e($complaint['priority'] ?? 'Normal'); ?></span></div></div></div>
+                    <div class="col-12"><div class="detail-item"><div class="detail-label">Address</div><div class="detail-value fw-normal"><?php echo nl2br(e($complaint['address'] ?: '—')); ?></div></div></div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<section class="card info-card mb-4">
+    <div class="card-body p-4">
+        <div class="section-heading">
+            <span class="section-icon"><i class="bi bi-file-earmark-text"></i></span>
+            <div><h3 class="h5 fw-bold mb-1">Complaint Description</h3><div class="text-muted small">Issue details entered with the complaint</div></div>
+        </div>
+        <div class="text-panel"><?php echo nl2br(e($complaint['description'] ?: 'No description provided.')); ?></div>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-xl-6">
+        <section class="card timeline-card h-100">
+            <div class="card-body p-4">
+                <div class="section-heading">
+                    <span class="section-icon"><i class="bi bi-chat-square-text"></i></span>
+                    <div><h3 class="h5 fw-bold mb-1">Remark History</h3><div class="text-muted small">Latest remarks appear first</div></div>
+                </div>
+
+                <?php if ($remarks && mysqli_num_rows($remarks) > 0): ?>
+                    <?php while ($row = mysqli_fetch_assoc($remarks)): ?>
+                        <div class="activity-item">
+                            <span class="activity-dot"><i class="bi bi-chat-dots"></i></span>
+                            <div class="activity-box">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between gap-2 mb-2">
+                                    <span class="badge <?php echo status_badge_class($row['status'] ?? ''); ?> align-self-start"><?php echo e($row['status'] ?: 'Remark'); ?></span>
+                                    <span class="text-muted small"><i class="bi bi-clock me-1"></i><?php echo display_date($row['remark_date'], true); ?></span>
+                                </div>
+                                <div class="text-secondary"><?php echo nl2br(e($row['remark'])); ?></div>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="empty-state"><i class="bi bi-chat-square-dots fs-1 d-block mb-3"></i>No remarks found.</div>
+                <?php endif; ?>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-xl-6">
+        <section class="card timeline-card h-100">
+            <div class="card-body p-4">
+                <div class="section-heading">
+                    <span class="section-icon"><i class="bi bi-clock-history"></i></span>
+                    <div><h3 class="h5 fw-bold mb-1">Complaint Timeline</h3><div class="text-muted small">Complete activity history</div></div>
+                </div>
+
+                <?php if ($timeline && mysqli_num_rows($timeline) > 0): ?>
+                    <?php while ($row = mysqli_fetch_assoc($timeline)): ?>
+                        <div class="activity-item">
+                            <span class="activity-dot"><i class="bi bi-check2"></i></span>
+                            <div class="activity-box">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between gap-2 mb-2">
+                                    <strong><?php echo e($row['action']); ?></strong>
+                                    <span class="text-muted small"><i class="bi bi-clock me-1"></i><?php echo display_date($row['created_at'], true); ?></span>
+                                </div>
+                                <div class="small text-muted mb-2">
+                                    <?php echo e($row['user_type'] ?: 'User'); ?>: <strong><?php echo e($row['user_name'] ?: 'Unknown'); ?></strong>
+                                </div>
+                                <?php if (!empty($row['details'])): ?>
+                                    <div class="text-secondary"><?php echo nl2br(e($row['details'])); ?></div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="empty-state"><i class="bi bi-clock-history fs-1 d-block mb-3"></i>No timeline available.</div>
+                <?php endif; ?>
+            </div>
+        </section>
+    </div>
+</div>
+
+<?php
+if ($remarks_stmt) {
+    mysqli_stmt_close($remarks_stmt);
+}
+if ($timeline_stmt) {
+    mysqli_stmt_close($timeline_stmt);
+}
+include 'includes/footer.php';
+?>
