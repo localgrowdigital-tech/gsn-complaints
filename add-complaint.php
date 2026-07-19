@@ -38,40 +38,55 @@ if (isset($_POST['save'])) {
         ? (int)$_POST['vendor_id']
         : 0;
 
-    $sql = "INSERT INTO complaints
-(
-    complaint_id,
-    job_id,
-    vendor_id,
-    complaint_date,
-    tracking_number,
-    secondary_tracking_number,
-    customer_name,
-    mobile,
-    address,
-    complaint_type,
-    description,
-    status,
-    priority
-)
-VALUES
-(
-    '$complaint_id',
-    '$job_id',
-    '$vendor_id',
-    '$complaint_date',
-    '$tracking_number',
-    '$secondary_tracking_number',
-    '$customer_name',
-    '$mobile',
-    '$address',
-    '$complaint_type',
-    '$description',
-    '$status',
-    '$priority'
-)";
+    $stmt = mysqli_prepare(
+    $conn,
+    "INSERT INTO complaints
+    (
+        complaint_id,
+        job_id,
+        vendor_id,
+        complaint_date,
+        tracking_number,
+        secondary_tracking_number,
+        customer_name,
+        mobile,
+        address,
+        complaint_type,
+        description,
+        status,
+        priority
+    )
+    VALUES
+    (
+        ?,?,?,?,?,?,?,?,?,?,?,?,?
+    )"
+);
 
-    if (mysqli_query($conn, $sql)) {
+if (!$stmt) {
+
+    $error = "Database Prepare Error.";
+
+} else {
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "siissssssssss",
+        $complaint_id,
+        $job_id,
+        $vendor_id,
+        $complaint_date,
+        $tracking_number,
+        $secondary_tracking_number,
+        $customer_name,
+        $mobile,
+        $address,
+        $complaint_type,
+        $description,
+        $status,
+        $priority
+    );
+
+    if (mysqli_stmt_execute($stmt)) {
 
         $newComplaintId = mysqli_insert_id($conn);
 
@@ -84,12 +99,18 @@ VALUES
             $_SESSION['admin'] ?? 'Admin'
         );
 
-        $success = "Complaint Added Successfully. Complaint ID: " . $complaint_id;
+        $success =
+            "Complaint Added Successfully. Complaint ID: "
+            . $complaint_id;
 
     } else {
 
-        $error = "Error: " . mysqli_error($conn);
+        $error = "Unable to save complaint.";
+
     }
+
+    mysqli_stmt_close($stmt);
+
 }
 ?>
 
