@@ -128,9 +128,10 @@ if (isset($_POST['save'])) {
 
         }
 
-        mysqli_stmt_close($stmt);
-
+                mysqli_stmt_close($stmt);
     }
+
+}
 
 }
 ?>
