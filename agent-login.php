@@ -89,9 +89,6 @@ $loggedOut = isset($_GET['logout']);
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="remember_me" name="remember_me">
                                 <label class="form-check-label" for="remember_me">Remember Me</label>
-                            </div>
-                            <span class="text-muted small">Forgot Password? Coming Soon</span>
-                        </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-2">Login</button>
                     </form>
