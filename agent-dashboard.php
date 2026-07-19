@@ -141,10 +141,13 @@ if ($jobStmt) {
 }
 
 $vendorSummarySql = "
-    SELECT COALESCE(v.vendor_name, 'No Vendor') AS vendor_name,
+    SELECT
+           c.vendor_id,
+           COALESCE(v.vendor_name, 'No Vendor') AS vendor_name,
+           COUNT(c.id) AS total_count,
            SUM(CASE WHEN c.status = 'Open' THEN 1 ELSE 0 END) AS open_count,
-           SUM(CASE WHEN c.status IN ('Resolved', 'Closed') THEN 1 ELSE 0 END) AS closed_count,
-           SUM(CASE WHEN c.status IN ('Open', 'In Progress') THEN 1 ELSE 0 END) AS pending_count
+           SUM(CASE WHEN c.status IN ('Open', 'In Progress') THEN 1 ELSE 0 END) AS pending_count,
+           SUM(CASE WHEN c.status IN ('Resolved', 'Closed') THEN 1 ELSE 0 END) AS closed_count
     FROM complaints c
     INNER JOIN agent_jobs aj ON aj.job_id = c.job_id
     LEFT JOIN vendors v ON v.id = c.vendor_id
@@ -208,6 +211,12 @@ $cards = [
         .table thead th { color:#64748b; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
         .summary-item { padding:14px 0; border-bottom:1px solid #eef2f7; }
         .summary-item:last-child { border-bottom:0; padding-bottom:0; }
+        .vendor-table thead th { background:#f8fafc; border-bottom:1px solid #e2e8f0; }
+        .vendor-table td, .vendor-table th { vertical-align:middle; }
+        .vendor-link { color:inherit; text-decoration:none; font-weight:700; }
+        .vendor-link:hover { color:#0d6efd; text-decoration:underline; }
+        .count-link { min-width:54px; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; }
+        .count-link:hover { transform:translateY(-1px); }
         @media(max-width:576px){.metric-card{min-height:126px}.metric-number{font-size:1.75rem}}
     </style>
 </head>
@@ -300,9 +309,85 @@ $cards = [
         <div class="col-xl-6"><div class="card dashboard-card h-100"><div class="card-header bg-white border-0 pt-4 px-4"><h2 class="h5 section-title">Job Summary</h2></div><div class="card-body px-4">
             <?php if ($jobSummaryResult && mysqli_num_rows($jobSummaryResult) > 0): ?><?php while ($row = mysqli_fetch_assoc($jobSummaryResult)): ?><div class="summary-item"><div class="fw-semibold mb-2"><?php echo e($row['job_name']); ?></div><div class="d-flex flex-wrap gap-2"><span class="badge text-bg-primary">Total <?php echo (int)$row['total_count']; ?></span><span class="badge text-bg-warning">Pending <?php echo (int)$row['pending_count']; ?></span><span class="badge text-bg-success">Closed <?php echo (int)$row['closed_count']; ?></span></div></div><?php endwhile; ?><?php else: ?><div class="text-muted py-4 text-center">No assigned jobs found.</div><?php endif; ?>
         </div></div></div>
-        <div class="col-xl-6"><div class="card dashboard-card h-100"><div class="card-header bg-white border-0 pt-4 px-4"><h2 class="h5 section-title">Vendor Summary</h2></div><div class="card-body px-4">
-            <?php if ($vendorSummaryResult && mysqli_num_rows($vendorSummaryResult) > 0): ?><?php while ($row = mysqli_fetch_assoc($vendorSummaryResult)): ?><div class="summary-item"><div class="fw-semibold mb-2"><?php echo e($row['vendor_name']); ?></div><div class="d-flex flex-wrap gap-2"><span class="badge text-bg-primary">Open <?php echo (int)$row['open_count']; ?></span><span class="badge text-bg-warning">Pending <?php echo (int)$row['pending_count']; ?></span><span class="badge text-bg-success">Closed <?php echo (int)$row['closed_count']; ?></span></div></div><?php endwhile; ?><?php else: ?><div class="text-muted py-4 text-center">No vendor complaints found.</div><?php endif; ?>
-        </div></div></div>
+        <div class="col-xl-6">
+            <div class="card dashboard-card h-100">
+                <div class="card-header bg-white border-0 pt-4 px-4">
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                        <div>
+                            <h2 class="h5 section-title">Vendor Summary</h2>
+                            <p class="text-muted small mb-0">Click any vendor or count to open filtered complaints.</p>
+                        </div>
+                        <i class="bi bi-truck fs-3 text-primary"></i>
+                    </div>
+                </div>
+
+                <div class="card-body px-4 pb-4">
+                    <?php if ($vendorSummaryResult && mysqli_num_rows($vendorSummaryResult) > 0): ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover vendor-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Vendor Name</th>
+                                        <th class="text-center">Total</th>
+                                        <th class="text-center">Open</th>
+                                        <th class="text-center">Pending</th>
+                                        <th class="text-center">Closed</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while ($row = mysqli_fetch_assoc($vendorSummaryResult)): ?>
+                                        <?php
+                                            $vendorId = (int)($row['vendor_id'] ?? 0);
+                                            $baseUrl = 'agent-complaints.php?vendor_id=' . $vendorId;
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <a class="vendor-link" href="<?php echo e($baseUrl); ?>">
+                                                    <?php echo e($row['vendor_name']); ?>
+                                                </a>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <a class="badge rounded-pill text-bg-dark count-link" href="<?php echo e($baseUrl); ?>">
+                                                    <?php echo (int)$row['total_count']; ?>
+                                                </a>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <a class="badge rounded-pill text-bg-primary count-link" href="<?php echo e($baseUrl . '&status=Open'); ?>">
+                                                    <?php echo (int)$row['open_count']; ?>
+                                                </a>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <a class="badge rounded-pill text-bg-warning count-link" href="<?php echo e($baseUrl . '&status=Pending'); ?>">
+                                                    <?php echo (int)$row['pending_count']; ?>
+                                                </a>
+                                            </td>
+
+                                            <td class="text-center">
+                                                <a class="badge rounded-pill text-bg-success count-link" href="<?php echo e($baseUrl . '&status=Closed'); ?>">
+                                                    <?php echo (int)$row['closed_count']; ?>
+                                                </a>
+                                            </td>
+
+                                            <td class="text-end">
+                                                <a class="btn btn-sm btn-outline-primary" href="<?php echo e($baseUrl); ?>">
+                                                    View <i class="bi bi-arrow-right ms-1"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-muted py-4 text-center">No vendor complaints found.</div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
     </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -217,10 +217,16 @@ if ($vendorFilter > 0) {
     $types .= 'i';
 }
 
-if ($statusFilter !== '' && in_array($statusFilter, $allowedStatuses, true)) {
-    $where[] = 'c.status = ?';
-    $params[] = $statusFilter;
-    $types .= 's';
+if ($statusFilter !== '') {
+    if ($statusFilter === 'Pending') {
+        $where[] = "c.status IN ('Open','In Progress')";
+    } elseif ($statusFilter === 'Closed') {
+        $where[] = "c.status IN ('Resolved','Closed')";
+    } elseif (in_array($statusFilter, $allowedStatuses, true)) {
+        $where[] = 'c.status = ?';
+        $params[] = $statusFilter;
+        $types .= 's';
+    }
 }
 
 if ($priorityFilter !== '' && in_array($priorityFilter, $allowedPriorities, true)) {
@@ -403,6 +409,16 @@ $exportQuery['export'] = 'xls';
 $exportUrl = 'agent-complaints.php?' . http_build_query($exportQuery);
 
 $activeFilterLabel = '';
+$activeVendorName = '';
+if ($vendorFilter > 0 && $vendorsResult) {
+    mysqli_data_seek($vendorsResult,0);
+    while($v=mysqli_fetch_assoc($vendorsResult)){
+        if((int)$v['id']===$vendorFilter){ $activeVendorName=$v['vendor_name']; break; }
+    }
+    mysqli_data_seek($vendorsResult,0);
+}
+
+
 
 if ($materialFilter) {
     $activeFilterLabel = 'New Material: Lost Shipment + Damaged Shipment';
@@ -416,6 +432,14 @@ if ($materialFilter) {
     $activeFilterLabel = 'Current Month';
 } elseif ($pinnedFilter) {
     $activeFilterLabel = 'Pinned Complaints';
+}
+if($activeVendorName!==''){
+    $activeFilterLabel .= ($activeFilterLabel!==''?' | ':'').'Vendor: '.$activeVendorName;
+}
+if($statusFilter==='Pending'){
+    $activeFilterLabel .= ($activeFilterLabel!==''?' | ':'').'Showing: Pending Complaints';
+}elseif($statusFilter==='Closed'){
+    $activeFilterLabel .= ($activeFilterLabel!==''?' | ':'').'Showing: Closed/Resolved Complaints';
 }
 ?>
 <!doctype html>
