@@ -1,18 +1,53 @@
 <?php
 session_start();
+require_once 'db.php';
 
-if (isset($_POST['login'])) {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+$error = '';
 
-    if ($username === "admin" && $password === "12345") {
-        $_SESSION['admin'] = $username;
-        header("Location: dashboard.php");
-        exit();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim((string)($_POST['username'] ?? ''));
+    $password = (string)($_POST['password'] ?? '');
+
+    if ($username === '' || $password === '') {
+        $error = 'Username and password are required.';
     } else {
-        $error = "Wrong username or password";
+        $stmt = mysqli_prepare(
+            $conn,
+            "SELECT id, username, password
+             FROM admins
+             WHERE username = ?
+             AND status = 'Active'
+             LIMIT 1"
+        );
+
+        if (!$stmt) {
+            error_log('Admin login prepare failed: ' . mysqli_error($conn));
+            $error = 'Login temporarily unavailable. Please try again.';
+        } else {
+            mysqli_stmt_bind_param($stmt, 's', $username);
+            mysqli_stmt_execute($stmt);
+
+            $result = mysqli_stmt_get_result($stmt);
+            $admin = mysqli_fetch_assoc($result);
+
+            mysqli_stmt_close($stmt);
+
+            if ($admin && password_verify($password, $admin['password'])) {
+                session_regenerate_id(true);
+
+                $_SESSION['admin'] = $admin['username'];
+                $_SESSION['admin_id'] = (int)$admin['id'];
+                $_SESSION['admin_last_activity'] = time();
+
+                header('Location: dashboard.php');
+                exit;
+            }
+
+            $error = 'Wrong username or password';
+        }
     }
 }
+?>
 ?>
 
 <!DOCTYPE html>
