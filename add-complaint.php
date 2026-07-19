@@ -22,26 +22,42 @@ if (!isset($_SESSION['admin'])) {
 if (isset($_POST['save'])) {
 
     $complaint_id = "GSN" . rand(10000, 99999);
-    $complaint_date = $_POST['complaint_date'];
-    $tracking_number = $_POST['tracking_number'];
-    $secondary_tracking_number = $_POST['secondary_tracking_number'];
-    $customer_name = $_POST['customer_name'];
-    $mobile = $_POST['mobile'];
-    $address = $_POST['address'];
-    $complaint_type = $_POST['complaint_type'];
-    $description = $_POST['description'];
+
+    $complaint_date = trim($_POST['complaint_date'] ?? '');
+    $tracking_number = trim($_POST['tracking_number'] ?? '');
+    $secondary_tracking_number = trim($_POST['secondary_tracking_number'] ?? '');
+    $customer_name = trim($_POST['customer_name'] ?? '');
+    $mobile = trim($_POST['mobile'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+    $complaint_type = trim($_POST['complaint_type'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+
     $status = "Open";
     $priority = $_POST['priority'] ?? 'Normal';
-    $job_id = (int)$_POST['job_id'];
+    $job_id = (int)($_POST['job_id'] ?? 0);
+
     $allowedPriorities = ['Normal', 'Urgent', 'Most Urgent'];
 
-if (!in_array($priority, $allowedPriorities, true)) {
-    $priority = 'Normal';
-}
+    if (!in_array($priority, $allowedPriorities, true)) {
+        $priority = 'Normal';
+    }
 
     $vendor_id = !empty($_POST['vendor_id'])
         ? (int)$_POST['vendor_id']
         : 0;
+
+    if (
+        $job_id <= 0 ||
+        $complaint_date === '' ||
+        $tracking_number === '' ||
+        $customer_name === '' ||
+        $mobile === '' ||
+        $complaint_type === ''
+    ) {
+        $error = "Please fill all required fields.";
+    }
+
+    if (!isset($error)) {
 
     $stmt = mysqli_prepare(
         $conn,
@@ -113,6 +129,7 @@ if (!in_array($priority, $allowedPriorities, true)) {
         }
 
         mysqli_stmt_close($stmt);
+
     }
 
 }
