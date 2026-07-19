@@ -43,21 +43,74 @@ if (isset($_POST['save'])) {
     }
 
     $vendor_id = !empty($_POST['vendor_id'])
-        ? (int)$_POST['vendor_id']
-        : 0;
+    ? (int)$_POST['vendor_id']
+    : 0;
 
-    if (
-        $job_id <= 0 ||
-        $complaint_date === '' ||
-        $tracking_number === '' ||
-        $customer_name === '' ||
-        $mobile === '' ||
-        $complaint_type === ''
-    ) {
-        $error = "Please fill all required fields.";
+/* Required fields validation */
+if (
+    $job_id <= 0 ||
+    $complaint_date === '' ||
+    $tracking_number === '' ||
+    $customer_name === '' ||
+    $mobile === '' ||
+    $complaint_type === ''
+) {
+    $error = "Please fill all required fields.";
+}
+
+/* Active Job validation */
+if (!isset($error)) {
+
+    $jobCheck = mysqli_prepare(
+        $conn,
+        "SELECT id FROM jobs WHERE id = ? AND status = 'Active' LIMIT 1"
+    );
+
+    if (!$jobCheck) {
+
+        $error = "Unable to validate selected job.";
+
+    } else {
+
+        mysqli_stmt_bind_param($jobCheck, "i", $job_id);
+        mysqli_stmt_execute($jobCheck);
+        mysqli_stmt_store_result($jobCheck);
+
+        if (mysqli_stmt_num_rows($jobCheck) !== 1) {
+            $error = "Invalid or inactive job selected.";
+        }
+
+        mysqli_stmt_close($jobCheck);
     }
+}
 
-    if (!isset($error)) {
+/* Optional Active Vendor validation */
+if (!isset($error) && $vendor_id > 0) {
+
+    $vendorCheck = mysqli_prepare(
+        $conn,
+        "SELECT id FROM vendors WHERE id = ? AND status = 'Active' LIMIT 1"
+    );
+
+    if (!$vendorCheck) {
+
+        $error = "Unable to validate selected vendor.";
+
+    } else {
+
+        mysqli_stmt_bind_param($vendorCheck, "i", $vendor_id);
+        mysqli_stmt_execute($vendorCheck);
+        mysqli_stmt_store_result($vendorCheck);
+
+        if (mysqli_stmt_num_rows($vendorCheck) !== 1) {
+            $error = "Invalid or inactive vendor selected.";
+        }
+
+        mysqli_stmt_close($vendorCheck);
+    }
+}
+
+if (!isset($error)) {
 
     $stmt = mysqli_prepare(
         $conn,
